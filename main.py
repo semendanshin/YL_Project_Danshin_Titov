@@ -59,8 +59,8 @@ class Sky(pygame.sprite.Sprite):
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, pos, anim_count):
-        super().__init__()
+    def __init__(self, pos, anim_count, *groups):
+        super().__init__(*groups)
         self.images = [pygame.transform.scale(load_im(f'player/run_{i + 1}.png').convert_alpha(), (120, 142)) for i in range(anim_count)]
         self.anim_count = anim_count
         self.anim_ind = 0
@@ -98,17 +98,18 @@ class Game:
     def __init__(self, screen):
         self.screen = screen
         self.screen_size = self.width, self.height = screen.get_width(), screen.get_height()
+        self.background = MySpriteGroup()
+        self.all_sprites = MySpriteGroup()
         self.running = True
         self.clock = pygame.time.Clock()
 
-    def load_objects(self, bg_num, player_num):
-        self.background = MySpriteGroup()
-        Sky('bg1/sky.png', self.screen_size, self.background)
-        LoopedImage('bg1/clouds_1.png', 2, self.screen_size, self.background)
-        LoopedImage('bg1/rocks.png', 5, self.screen_size, self.background)
-        LoopedImage('bg1/ground1.png', 10, self.screen_size, self.background)
-        self.ground = LoopedImage('ground.png', 25, self.screen_size)
-        self.player = Player((200, self.height - self.ground.get_size()[1]), 6)
+    def load_objects(self):
+        Sky('bg/sky.png', self.screen_size, self.background, self.all_sprites)
+        LoopedImage('bg/clouds_1.png', 2, self.screen_size, self.background, self.all_sprites)
+        LoopedImage('bg/rocks.png', 5, self.screen_size, self.background, self.all_sprites)
+        LoopedImage('bg/ground1.png', 10, self.screen_size, self.background, self.all_sprites)
+        self.ground = LoopedImage('ground.png', 25, self.screen_size, self.all_sprites)
+        self.player = Player((200, self.height - self.ground.get_size()[1]), 6, self.all_sprites)
 
     def check_events(self):
         for event in pygame.event.get():
@@ -116,28 +117,34 @@ class Game:
                 self.running = False
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                 self.running = False
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_SPACE:
+            if event.type == pygame.KEYDOWN and (event.key == pygame.K_SPACE or event.key == pygame.K_UP):
                 self.player.start_jump()
 
     def render(self):
         self.screen.fill((0, 0, 0))
-        self.background.draw(self.screen)
-        self.ground.draw(self.screen)
-        self.player.draw(self.screen)
+        self.all_sprites.draw(screen)
+
+    def update(self):
+        self.all_sprites.update()
 
     def main_loop(self):
         while self.running:
             print(self.clock.get_fps())
             self.clock.tick(60)
             self.check_events()
-
-            self.ground.update()
-            self.player.update()
-            self.background.update()
-
+            self.update()
             self.render()
-
             pygame.display.update()
+
+
+class Map:  # пока не работает
+    def __init__(self, filename):
+        with open(f'maps/{filename}', encoding='UTF-8') as f:
+            file = [el.strip() for el in f.readlines()]
+        self.col_ind = 0
+
+    def load_next(self, col_num=1):
+        pass
 
 
 if __name__ == '__main__':
@@ -147,6 +154,5 @@ if __name__ == '__main__':
     SIZE = WIDTH, HEIGHT = 1920, 1080
     screen = pygame.display.set_mode(SIZE)
     game = Game(screen)
-    game.load_objects(bg_num=1, player_num=1)
+    game.load_objects()
     game.main_loop()
-    pygame.sprite.Group().draw()
