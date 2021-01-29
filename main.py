@@ -71,21 +71,21 @@ class Player(pygame.sprite.Sprite):
         self.anim_speed = 1
         self.vy = 0
         self.t = 0
-        self.g = 1
+        self.g = 4
 
     def start_jump(self):  # TODO: Починить прыжок
         if not self.in_jump:
-            self.vy = randint(20, 25)
+            self.vy = randint(30, 35)
             self.in_jump = True
             self.t = 0
 
     def update(self):
         if self.in_jump:
-            if self.rect.y - (self.g * self.vy - self.t) >= self.ground_y_coord:
+            if self.rect.y + (-self.vy + self.g * self.t) >= self.ground_y_coord:
                 self.rect.y = self.ground_y_coord
                 self.in_jump = False
             else:
-                self.rect.y -= self.g * self.vy - self.t
+                self.rect.y += (-self.vy + self.g * self.t)
             self.t += 1
         else:
             self.anim_ind = (self.anim_ind + self.anim_speed) % (self.anim_count - 1)
