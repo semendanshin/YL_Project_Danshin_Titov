@@ -1,0 +1,2 @@
+background_layers_count==5
+play_music==0

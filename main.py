@@ -61,7 +61,12 @@ class Sky(pygame.sprite.Sprite):
 class Player(pygame.sprite.Sprite):
     def __init__(self, pos, *groups, anim_count=6):
         super().__init__(*groups)
-        self.images = [pygame.transform.scale(load_im(f'player/run_{i + 1}.png').convert_alpha(), (120, 142)) for i in range(anim_count)]
+        self.images = [
+            pygame.transform.scale(
+                load_im(f'player/run_{i + 1}.png').convert_alpha(), (120, 142)
+            )
+            for i in range(anim_count)
+        ]
         self.anim_count = anim_count
         self.anim_ind = 0
         self.rect = self.images[0].get_rect()
@@ -94,24 +99,74 @@ class Player(pygame.sprite.Sprite):
         screen.blit(self.images[round(self.anim_ind)], self.rect)
 
 
+class Eagle(pygame.sprite.Sprite):
+    def __init__(self, pos, *groups, anim_count=6):
+        super().__init__(*groups)
+        self.images = []
+        self.anim_ind = 0
+
+    def update(self):
+        pass
+
+    def draw(self, screen):
+        screen.blit(self.images[round(self.anim_ind)], self.rect)
+
+
+class Rock(pygame.sprite.Sprite):
+    def __init__(self, pos, *groups):
+        super().__init__(*groups)
+        self.image = None
+
+    def update(self):
+        pass
+
+    def draw(self, screen):
+        screen.blit(self.image, self.rect)
+
+
+class Map:  # пока не работает
+    def __init__(self, filename):
+        with open(f'maps/{filename}', encoding='UTF-8') as f:
+            file = [el.strip() for el in f.readlines()]
+        self.col_ind = 0
+
+    def load_next(self, col_num=1):
+        pass
+
+    def update(self):
+        pass
+
+    def draw(self):
+        pass
+
+
 class Game:
     def __init__(self, screen):
         self.screen_size = self.width, self.height = screen.get_width(), screen.get_height()
         self.background = MySpriteGroup()
         self.all_sprites = MySpriteGroup()
         self.clock = pygame.time.Clock()
+        self.settings = dict()
         self.screen = screen
         self.running = True
 
-    def read_settings(self):  # TODO: чтение настроек из файла
-        pass
+    def read_settings(self):
+        with open('settings.txt', encoding='UTF-8') as f:
+            for el in f.readlines():
+                key, value = el.strip().split('==')
+                value = int(value)
+                self.settings[key] = value
 
     def load_objects(self):
         Sky('bg/sky.png', self.screen_size, self.background, self.all_sprites)
-        LoopedImage('bg/lay_1.png', 5, self.screen_size, self.background, self.all_sprites)
-        LoopedImage('bg/lay_2.png', 10, self.screen_size, self.background, self.all_sprites)
-        LoopedImage('bg/lay_3.png', 20, self.screen_size, self.background, self.all_sprites)
-        LoopedImage('bg/lay_4.png', 25, self.screen_size, self.background, self.all_sprites)
+        if self.settings['background_layers_count'] > 1:
+            LoopedImage('bg/lay_1.png', 5, self.screen_size, self.background, self.all_sprites)
+        if self.settings['background_layers_count'] > 2:
+            LoopedImage('bg/lay_2.png', 10, self.screen_size, self.background, self.all_sprites)
+        if self.settings['background_layers_count'] > 3:
+            LoopedImage('bg/lay_3.png', 20, self.screen_size, self.background, self.all_sprites)
+        if self.settings['background_layers_count'] > 4:
+            LoopedImage('bg/lay_4.png', 25, self.screen_size, self.background, self.all_sprites)
         self.ground = LoopedImage('ground.png', 40, self.screen_size, self.all_sprites)
         self.player = Player((200, self.height - self.ground.get_size()[1]), self.all_sprites)
 
@@ -141,28 +196,12 @@ class Game:
         self.all_sprites.update()
 
 
-class Map:  # пока не работает
-    def __init__(self, filename):
-        with open(f'maps/{filename}', encoding='UTF-8') as f:
-            file = [el.strip() for el in f.readlines()]
-        self.col_ind = 0
-
-    def load_next(self, col_num=1):
-        pass
-
-    def update(self):
-        pass
-
-    def draw(self):
-        pass
-
-
 if __name__ == '__main__':
     pygame.init()
     pygame.display.set_caption('раннер')
     display_size = pygame.display.Info().current_w, pygame.display.Info().current_h
     SIZE = WIDTH, HEIGHT = 1920, 1080
-    screen = pygame.display.set_mode(SIZE)
+    screen = pygame.display.set_mode(SIZE, pygame.FULLSCREEN)
     game = Game(screen)
     game.read_settings()
     game.load_objects()
