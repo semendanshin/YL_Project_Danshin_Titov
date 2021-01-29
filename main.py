@@ -20,8 +20,8 @@ class MySpriteGroup(pygame.sprite.Group):
 
 
 class LoopedImage(pygame.sprite.Sprite):
-    def __init__(self, img_name, speed, screen_size, *gropus):
-        super().__init__(*gropus)
+    def __init__(self, img_name, speed, screen_size, *groups):
+        super().__init__(*groups)
         self.speed = speed
         self.screen_size = screen_size
         self.image = load_im(img_name).convert_alpha()
@@ -59,7 +59,7 @@ class Sky(pygame.sprite.Sprite):
 
 
 class Player(pygame.sprite.Sprite):
-    def __init__(self, pos, anim_count, *groups):
+    def __init__(self, pos, *groups, anim_count=6):
         super().__init__(*groups)
         self.images = [pygame.transform.scale(load_im(f'player/run_{i + 1}.png').convert_alpha(), (120, 142)) for i in range(anim_count)]
         self.anim_count = anim_count
@@ -73,7 +73,7 @@ class Player(pygame.sprite.Sprite):
         self.t = 0
         self.g = 1
 
-    def start_jump(self):
+    def start_jump(self):  # TODO: Починить прыжок
         if not self.in_jump:
             self.vy = randint(20, 25)
             self.in_jump = True
@@ -103,16 +103,17 @@ class Game:
         self.screen = screen
         self.running = True
 
-    def read_settings(self):
+    def read_settings(self):  # TODO: чтение настроек из файла
         pass
 
     def load_objects(self):
         Sky('bg/sky.png', self.screen_size, self.background, self.all_sprites)
-        LoopedImage('bg/clouds_1.png', 3, self.screen_size, self.background, self.all_sprites)
-        LoopedImage('bg/rocks.png', 8, self.screen_size, self.background, self.all_sprites)
-        LoopedImage('bg/ground1.png', 15, self.screen_size, self.background, self.all_sprites)
-        self.ground = LoopedImage('ground.png', 60, self.screen_size, self.all_sprites)
-        self.player = Player((200, self.height - self.ground.get_size()[1]), 6, self.all_sprites)
+        LoopedImage('bg/lay_1.png', 5, self.screen_size, self.background, self.all_sprites)
+        LoopedImage('bg/lay_2.png', 10, self.screen_size, self.background, self.all_sprites)
+        LoopedImage('bg/lay_3.png', 20, self.screen_size, self.background, self.all_sprites)
+        LoopedImage('bg/lay_4.png', 25, self.screen_size, self.background, self.all_sprites)
+        self.ground = LoopedImage('ground.png', 40, self.screen_size, self.all_sprites)
+        self.player = Player((200, self.height - self.ground.get_size()[1]), self.all_sprites)
 
     def main_loop(self):
         while self.running:
