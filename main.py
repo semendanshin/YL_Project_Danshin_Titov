@@ -1,17 +1,15 @@
 import pygame
-import os
-import sys
 from random import randint
 from math import floor
 
 
 def load_im(name):
-    fullname = os.path.join('imgs', name)
+    fullname = f'data/imgs/{name}'
     try:
         return pygame.image.load(fullname)
     except FileNotFoundError:
         print(f"Файл с изображением '{fullname}' не найден")
-        sys.exit(0)
+        exit(0)
 
 
 class MySpriteGroup(pygame.sprite.Group):
@@ -52,8 +50,66 @@ class Sky(pygame.sprite.Sprite):
         self.screen_size = screen_size
         self.image = load_im(img_name).convert_alpha()
         self.rect = self.image.get_rect()
-        self.rect.x = 0
-        self.rect.y = 0
+        self.rect.x, self.rect.y = 0, 0
+
+    def draw(self, screen):
+        screen.blit(self.image, self.rect)
+
+
+class Ghost(pygame.sprite.Sprite):
+    def __init__(self, pos, speed, screen_size, *groups):
+        super().__init__(*groups)
+        self.speed = speed
+        self.anim_count = 11
+        self.anim_ind = 0
+        self.anim_speed = 0.4
+        self.images = [
+            pygame.transform.scale(
+                load_im(f'ghost/fly_{i}.png').convert_alpha(), (screen_size[1] // 9, screen_size[1] // 9)
+            )
+            for i in range(self.anim_count)
+        ]
+        self.mask = pygame.mask.from_surface(self.images[0])
+        self.rect = self.images[0].get_rect()
+        self.rect.x, self.rect.y = pos[0], pos[1] - self.rect.size[1]
+
+    def update(self):
+        self.anim_ind = (self.anim_ind + self.anim_speed) % (self.anim_count - 1)
+        self.rect.x -= self.speed
+
+    def draw(self, screen):
+        screen.blit(self.images[round(self.anim_ind)], self.rect)
+
+
+class Rock(pygame.sprite.Sprite):
+    def __init__(self, pos, speed, screen_size, *groups):
+        super().__init__(*groups)
+        self.speed = speed
+        self.image = pygame.transform.scale(
+            load_im('rock.png').convert_alpha(), (screen_size[1] // 9, screen_size[1] // 9))
+        self.mask = pygame.mask.from_surface(self.image)
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = pos[0], pos[1] - self.rect.size[1]
+
+    def update(self):
+        self.rect.x -= self.speed
+
+    def draw(self, screen):
+        screen.blit(self.image, self.rect)
+
+
+class Coin(pygame.sprite.Sprite):
+    def __init__(self, pos, speed, screen_size, *groups):
+        super().__init__(*groups)
+        self.speed = speed
+        self.image = pygame.transform.scale(
+            load_im('coin.png').convert_alpha(), (screen_size[1] // 15, screen_size[1] // 15))
+        self.mask = pygame.mask.from_surface(self.image)
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = pos[0], pos[1] - self.rect.size[1]
+
+    def update(self):
+        self.rect.x -= self.speed
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
@@ -62,49 +118,56 @@ class Sky(pygame.sprite.Sprite):
 class Player(pygame.sprite.Sprite):
     def __init__(self, pos, screen_size, *groups):
         super().__init__(*groups)
+        self.screen_size = screen_size
         self.vy = 0
         self.t = 0
-        self.g = 4
+        self.g = 5
+        self.run_images = []
+        self.jump_images = []
+        self.slide_images = []
         self.run_anim_count = 6
         self.run_anim_ind = 0
         self.run_anim_speed = 0.6
-        self.run_images = [
-            pygame.transform.scale(
-                load_im(f'player/run_{i}.png').convert_alpha(), (screen_size[1] // 5, screen_size[1] // 5)
-            )
-            for i in range(self.run_anim_count)
-        ]
         self.jump_anim_count = 9
         self.jump_anim_index = 0
-        self.jump_anim_speed = 0.2
-        self.jump_images = [
-            pygame.transform.scale(
-                load_im(f'player/jump_{i}.png').convert_alpha(), (screen_size[1] // 5, screen_size[1] // 5)
-            )
-            for i in range(self.jump_anim_count)
-        ]
+        self.jump_anim_speed = 0.4
         self.slide_anim_count = 4
         self.slide_anim_index = 0
         self.slide_anim_speed = 0.5
-        self.slide_images = [
-            pygame.transform.scale(
-                load_im(f'player/slide_{i}.png').convert_alpha(), (screen_size[1] // 5, screen_size[1] // 5)
-            )
-            for i in range(self.slide_anim_count)
-        ]
         self.in_jump = False
         self.in_slide = False
+        self.load_animations()
         self.rect = self.run_images[0].get_rect()
         self.mask = pygame.mask.from_surface(self.run_images[0])
         self.rect.x, self.rect.y = pos[0], pos[1] - self.rect.size[1]
         self.ground_y_coord = self.rect.y
+
+    def load_animations(self):
+        self.run_images = [
+            pygame.transform.scale(
+                load_im(f'player/run_{i}.png').convert_alpha(), (self.screen_size[1] // 5, self.screen_size[1] // 5)
+            )
+            for i in range(self.run_anim_count)
+        ]
+        self.jump_images = [
+            pygame.transform.scale(
+                load_im(f'player/jump_{i}.png').convert_alpha(), (self.screen_size[1] // 5, self.screen_size[1] // 5)
+            )
+            for i in range(self.jump_anim_count)
+        ]
+        self.slide_images = [
+            pygame.transform.scale(
+                load_im(f'player/slide_{i}.png').convert_alpha(), (self.screen_size[1] // 5, self.screen_size[1] // 5)
+            )
+            for i in range(self.slide_anim_count)
+        ]
 
     def start_jump(self):
         if self.rect.y == self.ground_y_coord:
             self.in_jump = True
             self.in_slide = False
             self.jump_anim_index = 0
-            self.vy = randint(35, 40)
+            self.vy = randint(33, 38)
             self.t = 0
 
     def start_slide(self):
@@ -118,7 +181,7 @@ class Player(pygame.sprite.Sprite):
             self.in_slide = False
             self.rect.y = self.ground_y_coord
 
-    def update(self, coins, rocks, ghosts):
+    def update(self):
         if self.in_jump:
             if self.rect.y + (-self.vy + self.g * self.t) >= self.ground_y_coord:
                 self.rect.y = self.ground_y_coord
@@ -148,91 +211,38 @@ class Player(pygame.sprite.Sprite):
             screen.blit(self.run_images[floor(self.run_anim_ind)], self.rect)
 
 
-class Ghost(pygame.sprite.Sprite):
-    def __init__(self, pos, speed, screen_size, *groups):
-        super().__init__(*groups)
-        self.speed = speed
-        self.anim_count = 11
-        self.anim_ind = 0
-        self.anim_speed = 0.4
-        self.images = [
-            pygame.transform.scale(
-                load_im(f'ghost/fly_{i}.png').convert_alpha(), (screen_size[1] // 10, screen_size[1] // 10)
-            )
-            for i in range(self.anim_count)
-        ]
-        self.mask = pygame.mask.from_surface(self.images[0])
-        self.rect = self.images[0].get_rect()
-        self.rect.x, self.rect.y = pos[0], pos[1] - self.rect.size[1]
+class ScoreBoard:
+    def __init__(self, pos, font_path='data/OpenSans-ExtraBold.ttf', size=44):
+        self.font = pygame.font.Font(font_path, size)
+        self.pos = pos
+        self.score = 0
 
-    def update(self):
-        self.anim_ind = (self.anim_ind + self.anim_speed) % (self.anim_count - 1)
-        self.rect.x -= self.speed
+    def get_score(self):
+        return self.score
 
     def draw(self, screen):
-        screen.blit(self.images[round(self.anim_ind)], self.rect)
-
-
-class Rock(pygame.sprite.Sprite):
-    def __init__(self, pos, speed, screen_size, *groups):
-        super().__init__(*groups)
-        self.speed = speed
-        self.image = pygame.transform.scale(load_im('rock.png'), (screen_size[1] // 10, screen_size[1] // 10))
-        self.mask = pygame.mask.from_surface(self.image)
-        self.rect = self.image.get_rect()
-        self.rect.x, self.rect.y = pos[0], pos[1] - self.rect.size[1]
-
-    def update(self):
-        self.rect.x -= self.speed
-
-    def draw(self, screen):
-        screen.blit(self.image, self.rect)
-
-
-class Coin(pygame.sprite.Sprite):
-    def __init__(self, pos, speed, screen_size, *groups):
-        super().__init__(*groups)
-        self.speed = speed
-        self.image = pygame.transform.scale(load_im('coin.png'), (screen_size[1] // 15, screen_size[1] // 15))
-        self.mask = pygame.mask.from_surface(self.image)
-        self.rect = self.image.get_rect()
-        self.rect.x, self.rect.y = pos[0], pos[1] - self.rect.size[1]
-
-    def update(self):
-        self.rect.x -= self.speed
-
-    def draw(self, screen):
-        screen.blit(self.image, self.rect)
+        screen.blit(self.font.render(f'Очки: {self.score}', True, (255, 255, 255)), self.pos)
 
 
 class Map:
     def __init__(self, screen_size, filename):
+        self.run = True
         self.screen_size = screen_size
         self.all_sprites = MySpriteGroup()
         self.ghosts = MySpriteGroup()
         self.rocks = MySpriteGroup()
         self.coins = MySpriteGroup()
         self.frame = 0
-        self.cell_size = 120
-        self.speed = 40
+        self.cell_size = 150
+        self.speed = 50
         self.load_freq = self.cell_size // self.speed
         self.game_map = []
-        self.col_ind = 0
-        self.stop_game = False
         self.read_map(filename)
+        self.col_ind = 0
         self.ground = LoopedImage('ground.png', self.speed, self.screen_size, self.all_sprites)
 
-    def get_coins(self):
-        return self.coins
-
-    def get_rocks(self):
-        return self.rocks
-
-    def get_ghosts(self):
-        return self.ghosts
-
     def read_map(self, filename):
-        with open(f'maps/{filename}', encoding='UTF-8') as f:
+        with open(f'data/maps/{filename}', encoding='UTF-8') as f:
             self.game_map = [list(map(int, el.strip())) for el in f.readlines()]
 
     def load_next(self, col_count=1):
@@ -273,20 +283,27 @@ class Map:
 class Game:
     def __init__(self, screen):
         self.screen_size = self.width, self.height = screen.get_width(), screen.get_height()
+        self.screen = screen
         self.background = MySpriteGroup()
         self.clock = pygame.time.Clock()
         self.settings = dict()
-        self.screen = screen
+        self.read_settings()
+        self.score_board = None
+        self.game_map = None
+        self.player = None
+        self.load_objects()
         self.running = True
+        self.updating = True
 
     def read_settings(self):
-        with open('settings.txt', encoding='UTF-8') as f:
+        with open('data/settings.txt', encoding='UTF-8') as f:
             for el in f.readlines():
                 key, value = el.strip().split('==')
                 value = int(value)
                 self.settings[key] = value
 
     def load_objects(self):
+        self.score_board = ScoreBoard((self.height // 80, self.height // 80))
         self.game_map = Map(self.screen_size, '1.txt')
         self.player = Player((200, self.height - 200), self.screen_size)
         Sky('bg/sky.png', self.screen_size, self.background)
@@ -311,25 +328,34 @@ class Game:
         for event in pygame.event.get():
             if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE or event.type == pygame.QUIT:
                 self.running = False
-            if event.type == pygame.KEYDOWN and (event.key == pygame.K_SPACE or event.key == pygame.K_UP):
-                self.player.start_jump()
-            if event.type == pygame.KEYDOWN and (event.key == pygame.K_LCTRL or event.key == pygame.K_DOWN):
-                self.player.start_slide()
-            if event.type == pygame.KEYUP and (event.key == pygame.K_LCTRL or event.key == pygame.K_DOWN):
-                self.player.stop_slide()
+            if self.updating:
+                if event.type == pygame.KEYDOWN and (event.key == pygame.K_SPACE or event.key == pygame.K_UP):
+                    self.player.start_jump()
+                if event.type == pygame.KEYDOWN and (event.key == pygame.K_LCTRL or event.key == pygame.K_DOWN):
+                    self.player.start_slide()
+                if event.type == pygame.KEYUP and (event.key == pygame.K_LCTRL or event.key == pygame.K_DOWN):
+                    self.player.stop_slide()
 
     def update(self):
-        self.player.update(self.game_map.get_coins(), self.game_map.get_rocks(), self.game_map.get_ghosts())
-        self.game_map.update()
-        self.background.update()
-        if self.game_map.stop_game:
-            self.running = False
+        if self.updating:
+            self.player.update()
+            self.game_map.update()
+            self.background.update()
+            for el in self.game_map.all_sprites:
+                if pygame.sprite.collide_mask(self.player, el):
+                    if isinstance(el, Coin):
+                        self.game_map.all_sprites.remove(el)
+                        self.game_map.coins.remove(el)
+                        self.score_board.score += 1
+                    else:
+                        self.updating = False
 
     def render(self):
         self.screen.fill((0, 0, 0))
         self.background.draw(self.screen)
-        self.player.draw(self.screen)
         self.game_map.draw(self.screen)
+        self.player.draw(self.screen)
+        self.score_board.draw(self.screen)
         pygame.display.update()
 
 
@@ -339,7 +365,4 @@ if __name__ == '__main__':
     display_size = pygame.display.Info().current_w, pygame.display.Info().current_h
     SIZE = WIDTH, HEIGHT = 1920, 1080
     screen = pygame.display.set_mode(SIZE)
-    game = Game(screen)
-    game.read_settings()
-    game.load_objects()
-    game.main_loop()
+    Game(screen).main_loop()
