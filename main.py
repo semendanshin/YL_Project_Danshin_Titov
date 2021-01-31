@@ -9,6 +9,12 @@ def load_im(name):
         print(f"Файл с изображением '{fullname}' не найден")
         exit(0)
 
+def pp1():
+    print(1)
+def pp2():
+    print(2)
+def pp3():
+    print(3)
 
 class MySpriteGroup(pygame.sprite.Group):
     def draw(self, screen):
@@ -26,7 +32,7 @@ class ClickButton(pygame.sprite.Sprite):
         self.image = pygame.transform.scale(load_im(name).convert_alpha(), (X // 7, int(X // 7 * k)))
         self.rect = self.image.get_rect()
         x, y = X // 2, Y // 2
-        y += ((i != 0) * self.rect.height) + (50 * i)
+        y += (self.rect.height + 50) * i
         self.rect.x, self.rect.y = x - self.rect.width // 2, y - self.rect.height // 2
 
     def collide(self, pos):
