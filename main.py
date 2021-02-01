@@ -1,9 +1,12 @@
 import pygame
 from random import randint
 from math import floor, ceil
+
+
 # TODO: Сделать музыку
 # TODO: Сделать звуковые эффекты
 # TODO: Сделать генрацию карты на ходу
+# TODO: Сделать частицы для персонажа
 
 
 def load_im(name):
@@ -250,7 +253,7 @@ class ScoreBoard:
 
 
 class FPSBoard:
-    def __init__(self, pos,  font_path='data/PressStart2P-vaV7.ttf', size=28):
+    def __init__(self, pos, font_path='data/PressStart2P-vaV7.ttf', size=28):
         self.font = pygame.font.Font(font_path, size)
         self.text_template = 'FPS:{}'
         self.pos = pos
@@ -285,14 +288,15 @@ class Map:
     def load_next(self, col_count=1):
         if self.col_ind + col_count < len(self.game_map[0]):
             for i in range(col_count):
-                for j in (self.game_map[0][(self.col_ind + i)],
-                          self.game_map[1][(self.col_ind + i)]):
+                for j in (self.game_map[0][self.col_ind + i],
+                          self.game_map[1][self.col_ind + i]):
                     if j == 1:
                         if self.free_coins:
                             coin = self.free_coins.pop(0)
                             coin.set_pos((self.screen_size[0] + self.cell_size * i,
                                           self.screen_size[1] - self.screen_size[1] // 5))
                             self.coins.add(coin)
+                            self.all_sprites.add(coin)
                         else:
                             Coin(self.speed, self.screen_size,
                                  (self.screen_size[0] + self.cell_size * i,
@@ -304,6 +308,7 @@ class Map:
                             rock.set_pos((self.screen_size[0] + self.cell_size * i,
                                           self.screen_size[1] - self.screen_size[1] // 5 + 5))
                             self.rocks.add(rock)
+                            self.all_sprites.add(rock)
                         else:
                             Rock(self.speed, self.screen_size,
                                  (self.screen_size[0] + self.cell_size * i,
@@ -315,6 +320,7 @@ class Map:
                             ghost.set_pos((self.screen_size[0] + self.cell_size * i,
                                            self.screen_size[1] - self.screen_size[1] // 5 - 150))
                             self.ghosts.add(ghost)
+                            self.all_sprites.add(ghost)
                         else:
                             Ghost(self.speed, self.screen_size,
                                   (self.screen_size[0] + self.cell_size * i,
@@ -328,7 +334,7 @@ class Map:
 
     def update(self):
         self.frame = (self.frame + 1) % self.load_freq
-        if self.frame % self.load_freq == 0:
+        if self.frame == 0:
             self.load_next()
         self.all_sprites.update()
         for el in self.all_sprites:
@@ -365,6 +371,7 @@ class Game:
                 self.settings[key] = value
 
     def load_objects(self):
+        self.coin_pick_up_sfx = pygame.mixer.Sound('data/sfx/coin_pick_up.mp3')
         self.fps_board = FPSBoard((self.width - 180, self.height // 80))
         self.score_board = ScoreBoard((self.height // 80, self.height // 80))
         self.game_map = Map(self.screen_size, '1.txt')
@@ -403,9 +410,10 @@ class Game:
             for el in self.game_map.all_sprites:
                 if pygame.sprite.collide_mask(self.player, el):
                     if isinstance(el, Coin):
-                        self.game_map.all_sprites.remove(el)
-                        self.game_map.coins.remove(el)
+                        self.coin_pick_up_sfx.play()
                         self.score_board.score += 1
+                        self.game_map.free_coins.append(el)
+                        el.kill()
                     elif isinstance(el, (Ghost, Rock)):
                         self.updating = False
 
