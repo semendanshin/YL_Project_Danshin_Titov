@@ -1,5 +1,5 @@
 import pygame
-from random import randint
+from random import randint, choice
 from math import floor, ceil
 
 
@@ -18,8 +18,17 @@ def load_im(name):
         exit(0)
 
 
+class MySpriteGroup(pygame.sprite.Group):
+    def draw(self, screen):
+        for el in self.sprites():
+            el.draw(screen)
+
+
 class Map:
-    def __init__(self, screen_size, filename):
+    cell_size = 300
+    speed = 50
+
+    def __init__(self, screen_size):
         self.screen_size = screen_size
         self.all_sprites = MySpriteGroup()
         self.ghosts = MySpriteGroup()
@@ -29,73 +38,70 @@ class Map:
         self.free_rocks = []
         self.free_coins = []
         self.frame = 0
-        self.cell_size = 150
-        self.speed = 50
+        self.cell_size = Map.cell_size
+        self.speed = Map.speed
         self.load_freq = ceil(self.cell_size / self.speed)
-        self.read_map(filename)
-        # self.game_map = []
-        self.col_ind = 0
+        self.game_map = [[0, 0], [0, 0], [0, 0]]
         self.ground = LoopedImage('ground.png', self.speed, self.screen_size, self.all_sprites)
-        self.ground.mask = pygame.mask.from_surface(self.ground.image)
-        self.run = True
-
-    def read_map(self, filename):
-        with open(f'data/maps/{filename}', encoding='UTF-8') as f:
-            self.game_map = [list(map(int, el.strip())) for el in f.readlines()]
 
     def generate_next(self):
-        pass
+        new_items = []
+        while True:
+            item = choice([0] * 2 + [1] * 4 + [2] * 4)
+            if self.game_map[-2][0] != 2 and self.game_map[-1][0] != 2 and self.game_map[-1][1] != 3 or item != 2:
+                new_items.append(item)
+                break
+        while True:
+            item = choice([0] * 7 + [3] * 3)
+            if new_items[0] != 2 and self.game_map[-1][0] != 2 and self.game_map[-1][1] != 3 or item != 3:
+                new_items.append(item)
+                break
+        self.game_map.append(new_items)
 
-    def load_next(self, col_count=1):
-        if self.col_ind + col_count < len(self.game_map[0]):
-            for i in range(col_count):
-                for j in (self.game_map[0][self.col_ind + i],
-                          self.game_map[1][self.col_ind + i]):
-                    if j == 1:
-                        if self.free_coins:
-                            coin = self.free_coins.pop(0)
-                            coin.set_pos((self.screen_size[0] + self.cell_size * i,
-                                          self.screen_size[1] - self.screen_size[1] // 5))
-                            self.coins.add(coin)
-                            self.all_sprites.add(coin)
-                        else:
-                            Coin(self.speed, self.screen_size,
-                                 (self.screen_size[0] + self.cell_size * i,
-                                  self.screen_size[1] - self.screen_size[1] // 5),
-                                 self.all_sprites, self.coins)
-                    elif j == 2:
-                        if self.free_rocks:
-                            rock = self.free_rocks.pop(0)
-                            rock.set_pos((self.screen_size[0] + self.cell_size * i,
-                                          self.screen_size[1] - self.screen_size[1] // 5 + 5))
-                            self.rocks.add(rock)
-                            self.all_sprites.add(rock)
-                        else:
-                            Rock(self.speed, self.screen_size,
-                                 (self.screen_size[0] + self.cell_size * i,
-                                  self.screen_size[1] - self.screen_size[1] // 5 + 5),
-                                 self.all_sprites, self.rocks)
-                    elif j == 3:
-                        if self.free_ghosts:
-                            ghost = self.free_ghosts.pop(0)
-                            ghost.set_pos((self.screen_size[0] + self.cell_size * i,
-                                           self.screen_size[1] - self.screen_size[1] // 5 - 150))
-                            self.ghosts.add(ghost)
-                            self.all_sprites.add(ghost)
-                        else:
-                            Ghost(self.speed, self.screen_size,
-                                  (self.screen_size[0] + self.cell_size * i,
-                                   self.screen_size[1] - self.screen_size[1] // 5 - 150),
-                                  self.all_sprites, self.ghosts)
-            self.col_ind += col_count
-        else:
-            pass
-            # self.finish_flag = FinishFlag((self.screen_size[0] + self.cell_size,
-            #                                self.screen_size[1] - self.screen_size[1] // 5))
+    def load_next(self):
+        for i, el in enumerate(self.game_map[-1]):
+            if el == 1:
+                if self.free_coins:
+                    coin = self.free_coins.pop(0)
+                    coin.set_pos((self.screen_size[0] + self.cell_size,
+                                  self.screen_size[1] - self.screen_size[1] // 5 - 150 * i))
+                    self.coins.add(coin)
+                    self.all_sprites.add(coin)
+                else:
+                    Coin(self.speed, self.screen_size,
+                         (self.screen_size[0] + self.cell_size,
+                          self.screen_size[1] - self.screen_size[1] // 5),
+                         self.all_sprites, self.coins)
+            elif el == 2:
+                if self.free_rocks:
+                    rock = self.free_rocks.pop(0)
+                    rock.set_pos((self.screen_size[0] + self.cell_size,
+                                  self.screen_size[1] - self.screen_size[1] // 5 + 5))
+                    self.rocks.add(rock)
+                    self.all_sprites.add(rock)
+                else:
+                    Rock(self.speed, self.screen_size,
+                         (self.screen_size[0] + self.cell_size,
+                          self.screen_size[1] - self.screen_size[1] // 5 + 5),
+                         self.all_sprites, self.rocks)
+            elif el == 3:
+                if self.free_ghosts:
+                    ghost = self.free_ghosts.pop(0)
+                    ghost.set_pos((self.screen_size[0] + self.cell_size,
+                                   self.screen_size[1] - self.screen_size[1] // 5 - 150))
+                    self.ghosts.add(ghost)
+                    self.all_sprites.add(ghost)
+                else:
+                    Ghost(self.speed, self.screen_size,
+                          (self.screen_size[0] + self.cell_size,
+                           self.screen_size[1] - self.screen_size[1] // 5 - 150),
+                          self.all_sprites, self.ghosts)
+        self.game_map = self.game_map[1:]
 
     def update(self):
         self.frame = (self.frame + 1) % self.load_freq
         if self.frame == 0:
+            self.generate_next()
             self.load_next()
         self.all_sprites.update()
         for el in self.all_sprites:
@@ -113,12 +119,15 @@ class Map:
 
 
 class Ghost(pygame.sprite.Sprite):
+    anim_count = 3
+    anim_speed = 0.4
+
     def __init__(self, speed, screen_size, pos=(0, 0), *groups):
         super().__init__(*groups)
         self.speed = speed
-        self.anim_count = 3
+        self.anim_count = Ghost.anim_count
+        self.anim_speed = Ghost.anim_speed
         self.anim_ind = 0
-        self.anim_speed = 0.4
         self.images = [
             pygame.transform.scale(
                 load_im(f'ghost/fly_{i}.png').convert_alpha(), (screen_size[1] // 9, screen_size[1] // 9)
@@ -131,6 +140,9 @@ class Ghost(pygame.sprite.Sprite):
 
     def set_pos(self, pos):
         self.rect.x, self.rect.y = pos[0], pos[1] - self.rect.size[1]
+
+    def set_speed(self, speed):
+        self.speed = speed
 
     def update(self):
         self.anim_ind = (self.anim_ind + self.anim_speed) % (self.anim_count - 1)
@@ -153,6 +165,9 @@ class Rock(pygame.sprite.Sprite):
     def set_pos(self, pos):
         self.rect.x, self.rect.y = pos[0], pos[1] - self.rect.size[1]
 
+    def set_speed(self, speed):
+        self.speed = speed
+
     def update(self):
         self.rect.x -= self.speed
 
@@ -173,6 +188,9 @@ class Coin(pygame.sprite.Sprite):
     def set_pos(self, pos):
         self.rect.x, self.rect.y = pos[0], pos[1] - self.rect.size[1]
 
+    def set_speed(self, speed):
+        self.speed = speed
+
     def update(self):
         self.rect.x -= self.speed
 
@@ -180,17 +198,13 @@ class Coin(pygame.sprite.Sprite):
         screen.blit(self.image, self.rect)
 
 
-class MySpriteGroup(pygame.sprite.Group):
-    def draw(self, screen):
-        for el in self.sprites():
-            el.draw(screen)
-
-
 class ScoreBoard:
+    text_template = 'Coins:{}'
+
     def __init__(self, pos, font_path='data/PressStart2P-vaV7.ttf', size=44):
         self.font = pygame.font.Font(font_path, size)
-        self.text_template = 'Coins:{}'
         self.pos = pos
+        self.text_template = ScoreBoard.text_template
         self.score = 0
 
     def get_score(self):
@@ -201,9 +215,11 @@ class ScoreBoard:
 
 
 class FPSBoard:
+    text_template = 'FPS:{}'
+
     def __init__(self, pos, font_path='data/PressStart2P-vaV7.ttf', size=28):
         self.font = pygame.font.Font(font_path, size)
-        self.text_template = 'FPS:{}'
+        self.text_template = FPSBoard.text_template
         self.pos = pos
 
     def draw(self, screen, fps):
@@ -261,24 +277,34 @@ class Sky(pygame.sprite.Sprite):
 
 
 class Player(pygame.sprite.Sprite):
+    run_anim_count = 6
+    run_anim_speed = 0.6
+    jump_anim_count = 9
+    jump_anim_speed = 0.5
+    slide_anim_count = 4
+    slide_anim_speed = 0.5
+    vy = 0
+    t = 0
+    g = 5
+
     def __init__(self, pos, screen_size, *groups):
         super().__init__(*groups)
         self.screen_size = screen_size
-        self.vy = 0
-        self.t = 0
-        self.g = 5
+        self.vy = Player.vy
+        self.t = Player.t
+        self.g = Player.g
         self.run_images = []
-        self.jump_images = []
-        self.slide_images = []
-        self.run_anim_count = 6
+        self.run_anim_count = Player.run_anim_count
+        self.run_anim_speed = Player.run_anim_speed
         self.run_anim_ind = 0
-        self.run_anim_speed = 0.6
-        self.jump_anim_count = 9
+        self.jump_images = []
+        self.jump_anim_count = Player.jump_anim_count
+        self.jump_anim_speed = Player.jump_anim_speed
         self.jump_anim_index = 0
-        self.jump_anim_speed = 0.5
-        self.slide_anim_count = 4
+        self.slide_images = []
+        self.slide_anim_count = Player.slide_anim_count
+        self.slide_anim_speed = Player.slide_anim_speed
         self.slide_anim_index = 0
-        self.slide_anim_speed = 0.5
         self.in_jump = False
         self.in_slide = False
         self.load_animations()
@@ -326,7 +352,7 @@ class Player(pygame.sprite.Sprite):
             self.in_slide = False
             self.rect.y = self.ground_y_coord
 
-    def update(self, ground):
+    def update(self):
         if self.in_jump:
             if self.rect.y + (-self.vy + self.g * self.t) >= self.ground_y_coord:
                 self.rect.y = self.ground_y_coord
@@ -360,6 +386,7 @@ class Game:
     def __init__(self, screen):
         self.screen_size = self.width, self.height = screen.get_width(), screen.get_height()
         self.screen = screen
+        self.screens = (screen, screen)
         self.background = MySpriteGroup()
         self.clock = pygame.time.Clock()
         self.settings = dict()
@@ -377,7 +404,7 @@ class Game:
 
     def load_objects(self):
         self.score_board = ScoreBoard((self.height // 80, self.height // 80))
-        self.game_map = Map(self.screen_size, '1.txt')
+        self.game_map = Map(self.screen_size)
         self.player = Player((200, self.height - self.height // 5), self.screen_size)
         Sky('bg/sky.png', self.screen_size, self.background)
         for i in range(1, self.settings['background_layers_count']):
@@ -413,7 +440,7 @@ class Game:
 
     def update(self):
         if self.in_game:
-            self.player.update(self.game_map.ground)
+            self.player.update()
             self.game_map.update()
             self.background.update()
             for el in self.game_map.all_sprites:
@@ -425,9 +452,11 @@ class Game:
                         self.game_map.free_coins.append(el)
                         el.kill()
                     elif isinstance(el, (Ghost, Rock)):
-                        self.updating = False
+                        self.in_game = False
 
     def render(self):
+        if self.settings['motion_blur']:
+            self.screens = (self.screens[1], self.screen)
         self.screen.fill((0, 0, 0))
         self.background.draw(self.screen)
         self.player.draw(self.screen)
@@ -435,6 +464,10 @@ class Game:
         self.score_board.draw(self.screen)
         if self.settings['show_fps']:
             self.fps_board.draw(self.screen, int(self.clock.get_fps()))
+        if self.settings['motion_blur']:
+            for i, el in enumerate(self.screens, 1):
+                el.set_alpha(25 * i)
+                self.screen.blit(el, (0, 0))
         pygame.display.update()
 
     def restart(self):
