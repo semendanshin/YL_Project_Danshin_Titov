@@ -1,5 +1,5 @@
 background_layers_count==5
-motion_blur==0
+motion_blur==1
 play_music==1
 play_sfx==1
 show_fps==1

@@ -1,9 +1,12 @@
 from objects import *
 
+FPS = 24
+
 
 class Game:
     score_text_template = 'Coins:{}'
     fps_text_template = 'FPS:{}'
+    game_over_text_template = 'Press any key to start'
 
     def __init__(self, surf):
         self.screen_size = self.width, self.height = surf.get_width(), surf.get_height()
@@ -15,7 +18,7 @@ class Game:
         self.surf = surf
         self.settings = dict()
         self.running = True
-        self.in_game = True
+        self.in_game = False
         self.score = 0
         self.read_settings()
         self.load_objects()
@@ -30,18 +33,29 @@ class Game:
                 self.settings[key] = value
 
     def load_objects(self):
+        self.game_over_surf = pg.Surface(self.screen_size, pg.SRCALPHA)
+        self.game_over_surf.fill((0, 0, 0))
+        self.game_over_surf.set_alpha(150)
+        game_over_text = pg.font.Font('data/PressStart2P-vaV7.ttf', self.width // 40).render(
+            Game.game_over_text_template.format(int(self.clock.get_fps())), True, (255, 255, 255)
+        )
+        self.game_over_surf.blit(game_over_text, (self.width // 2 - game_over_text.get_rect().w // 2,
+                                                  self.height // 2 - game_over_text.get_rect().h // 2))
+
         if self.width / self.height > 16 / 9:
             size = (self.width, ceil(self.width / 16 * 9))
         elif self.width / self.height < 16 / 9:
             size = (ceil(self.height / 9 * 16), self.height)
         else:
             size = self.screen_size
+
         self.player = Player(
             (200, self.height - self.height // 5), (self.height // 5, self.height // 5)
         )
         self.game_map = Map(self.screen_size, size)
         for i in range(0, self.settings['background_layers_count']):
             LoopedImage(f'bg/lay_{i}.png', 5 * i, size, self.background)
+
         if self.settings['play_sfx']:
             self.coin_pick_up_sfx = pg.mixer.Sound('data/sfx/coin_pick_up.mp3')
             self.death_sfx = pg.mixer.Sound('data/sfx/death.wav')
@@ -49,7 +63,7 @@ class Game:
 
     def main_loop(self):
         while self.running:
-            self.clock.tick(24)
+            self.clock.tick(FPS)
             self.check_events()
             self.update()
             self.render()
@@ -68,8 +82,9 @@ class Game:
                 else:
                     self.restart()
             elif event.type == pg.KEYUP:
-                if event.key == pg.K_LCTRL or event.key == pg.K_DOWN:
-                    self.player.stop_slide()
+                if self.in_game:
+                    if event.key == pg.K_LCTRL or event.key == pg.K_DOWN:
+                        self.player.stop_slide()
             elif event.type == pg.QUIT:
                 pg.quit()
             elif event.type == SONG_END:
@@ -115,6 +130,8 @@ class Game:
                 el.set_alpha(50 * i)
                 self.surf.blit(el, (0, 0))
             self.screens = self.screens[1:] + [self.surf]
+        if not self.in_game:
+            self.surf.blit(self.game_over_surf, (0, 0))
         pg.display.update()
 
     def restart(self):
@@ -122,4 +139,3 @@ class Game:
         self.score = 0
         self.background.empty()
         self.load_objects()
-

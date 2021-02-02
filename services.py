@@ -1,5 +1,5 @@
 import pygame as pg
-from random import choice
+from random import choice, randint
 
 SONG_END = pg.USEREVENT + 1
 
@@ -14,22 +14,22 @@ def load_im(name):
 
 
 class MusicPlayer:
-    song_count = 6
+    song_count = 5
 
     def __init__(self):
         pg.mixer.music.set_volume(0.1)
         self.song_count = MusicPlayer.song_count
         self.current_song = None
-        self.songs = [open(f'data/sfx/bgm_action_{i}.mp3', 'rb') for i in range(self.song_count)]
         self.next_song()
 
     def next_song(self):
         while True:
-            next_song = choice(self.songs)
+            next_song = randint(0, self.song_count - 1)
             if next_song != self.current_song:
+                self.current_song = next_song
                 break
-        pg.mixer.music.load(next_song)
-        pg.mixer.music.play()
+        pg.mixer.music.load(f'data/sfx/bgm_action_{self.current_song}.mp3')
+        pg.mixer.music.play(fade_ms=100)
 
 
 class MySpriteGroup(pg.sprite.Group):
