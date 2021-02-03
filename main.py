@@ -2,12 +2,13 @@ import pygame, os
 
 
 def load_im(name):
-    fullname = f'imgs/{name}'
+    fullname = f'data/imgs/{name}'
     try:
         return pygame.image.load(fullname)
     except FileNotFoundError:
         print(f"Файл с изображением '{fullname}' не найден")
         exit(0)
+
 
 def pp1():
     print(1)
@@ -15,6 +16,7 @@ def pp2():
     print(2)
 def pp3():
     print(3)
+
 
 class MySpriteGroup(pygame.sprite.Group):
     def draw(self, screen):
@@ -27,7 +29,9 @@ class MySpriteGroup(pygame.sprite.Group):
 
 
 class ClickButton(pygame.sprite.Sprite):
+    '''Класс создает кнопку на которую можно нажимать'''
     def __init__(self, name, func, i, X, Y, *groups):
+        '''Кнопка хранит своё изображение, размеры, позицию, а также функцию, которая запускается при нажатии на нее'''
         super().__init__(*groups)
         self.name = name
         self.func = func
@@ -40,9 +44,11 @@ class ClickButton(pygame.sprite.Sprite):
         self.rect.x, self.rect.y = x - self.rect.width // 2, y - self.rect.height // 2
 
     def collide(self, pos):
+        '''проверка что точка лежит на кнопке'''
         return self.rect.collidepoint(pos)
 
     def draw(self, screen):
+        '''отрисовка'''
         screen.blit(self.image, self.rect)
 
     def update(self, *args):
@@ -50,7 +56,9 @@ class ClickButton(pygame.sprite.Sprite):
 
 
 class CheckBox(pygame.sprite.Sprite):
+    '''Класс создает check box'''
     def __init__(self, i, X, Y, *groups):
+        '''хранит текущее состояние (картинка + число), размеры, позицию, картинки для всех возможных состояний'''
         super().__init__(*groups)
         image0 = load_im('check0.png').convert_alpha()
         image1 = load_im('check1.png').convert_alpha()
@@ -66,11 +74,15 @@ class CheckBox(pygame.sprite.Sprite):
         self.update(3)
 
     def update(self, ind):
+        '''если индекс кнопки, на которую нажали совпадает с индексом кнопки, но отображается картинка 1-ого состояния
+        если передан индекс равный кол-во кнопок, значит нажатие было не по кнопкам'''
         if ind == 4:
             return None
         if self.i == ind:
+            self.type = 1
             self.image = self.image1
         else:
+            self.type = 0
             self.image = self.image0
 
     def draw(self, screen):
@@ -128,18 +140,37 @@ class Settings:
                 self.render()
             pygame.display.update()
         self.running = True
+        self.exit()
 
     def update(self, pos):
         i = 0
         for sprite in self.checkboxs.sprites():
             if sprite.rect.collidepoint(pos):
+                sprite.type = 1
                 break
             i += 1
         self.checkboxs.update(i)
 
     def render(self):
-        self.screen.fill((100, 0, 0))
+        self.screen.fill((0, 0, 0))
         self.checkboxs.draw(self.screen)
+
+    def exit(self):
+        '''Функция запускается когда пользователь возвращается в меню и сохраняет настройки, указанные пользователем'''
+        i = 1
+        for sprite in self.checkboxs.sprites():
+            if sprite.type == 1:
+                break
+            i += 1
+        f = open('data/settings.txt', 'r', encoding='utf8')
+        l = list(f.readlines())
+        print(l)
+        l[0] = l[0].split('==')[0] + '==' + str(i) + '\n'
+        print(l)
+        f.close()
+        f = open('data/settings.txt', 'w', encoding='utf8')
+        f.writelines(l)
+        f.close()
 
 
 if __name__ == '__main__':
