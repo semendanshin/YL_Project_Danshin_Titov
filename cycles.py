@@ -4,7 +4,8 @@ FPS = 30
 
 
 class Game:
-    score_text_template = 'Coins:{}'
+    score_text_template = 'Score:{}'
+    coins_text_template = 'Coins:{}'
     fps_text_template = 'FPS:{}'
     game_over_text_template = 'Press any key to start'
 
@@ -12,14 +13,17 @@ class Game:
         self.screen_size = self.width, self.height = surf.get_width(), surf.get_height()
         self.fps_font = pg.font.Font('data/PressStart2P-vaV7.ttf', self.width // 80)
         self.score_font = pg.font.Font('data/PressStart2P-vaV7.ttf', self.width // 60)
+        self.coins_font = pg.font.Font('data/PressStart2P-vaV7.ttf', self.width // 60)
         self.background = MySpriteGroup()
         self.clock = pg.time.Clock()
         self.surf = surf
         self.settings = dict()
         self.running = True
         self.in_game = False
-        self.score_sum = 0
+        self.max_score = 0
         self.score = 0
+        self.coins_sum = 0
+        self.coins = 0
         self.read_settings()
         self.load_objects()
         if self.settings['play_music']:
@@ -68,7 +72,7 @@ class Game:
             self.check_events()
             self.update()
             self.render()
-        return self.score_sum + self.score
+        return self.coins_sum, self.max_score
 
     def check_events(self):
         for event in pg.event.get():
@@ -93,21 +97,24 @@ class Game:
 
     def update(self):
         if self.in_game:
+            self.score += 1
+            if self.score % 500 == 0:
+                self.game_map.up_speed()
             self.player.update()
             self.game_map.update()
             self.background.update()
             for el in pg.sprite.spritecollide(self.player, self.game_map.all_sprites, dokill=False):
                 if pg.sprite.collide_mask(self.player, el):
                     if isinstance(el, Coin):
-                        self.score += 1
-                        if self.score % 10 == 0:
-                            self.game_map.up_speed()
+                        self.coins += 1
                         if self.settings['play_sfx']:
                             self.coin_pick_up_sfx.play()
                         self.game_map.free_coins.append(el)
                         el.kill()
                     elif isinstance(el, (Ghost, Rock)):
                         self.in_game = False
+                        self.coins_sum += self.coins
+                        self.max_score = max(self.score, self.max_score)
                         if self.settings['play_sfx']:
                             self.death_sfx.play()
 
@@ -116,11 +123,14 @@ class Game:
         self.background.draw(self.surf)
         self.player.draw(self.surf)
         self.game_map.draw(self.surf)
-        self.surf.blit(
-            self.score_font.render(
+        score_text = self.score_font.render(
                 Game.score_text_template.format(self.score), True, (255, 255, 255)
-            ), (10, 10)
-        )
+            )
+        coins_text = self.coins_font.render(
+                Game.coins_text_template.format(self.coins), True, (255, 255, 255)
+            )
+        self.surf.blit(score_text, (10, 10))
+        self.surf.blit(coins_text, (10, 20 + coins_text.get_rect().h))
         if self.settings['show_fps']:
             fps_text = self.fps_font.render(
                     Game.fps_text_template.format(int(self.clock.get_fps())), True, (255, 255, 255)
@@ -132,7 +142,7 @@ class Game:
 
     def restart(self):
         self.in_game = True
-        self.score_sum += self.score
         self.score = 0
+        self.coins = 0
         self.background.empty()
         self.load_objects()
