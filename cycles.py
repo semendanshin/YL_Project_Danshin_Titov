@@ -1,6 +1,6 @@
 from objects import *
 
-FPS = 24
+FPS = 30
 
 
 class Game:
@@ -14,11 +14,11 @@ class Game:
         self.score_font = pg.font.Font('data/PressStart2P-vaV7.ttf', self.width // 60)
         self.background = MySpriteGroup()
         self.clock = pg.time.Clock()
-        self.screens = [surf] * 3
         self.surf = surf
         self.settings = dict()
         self.running = True
         self.in_game = False
+        self.score_sum = 0
         self.score = 0
         self.read_settings()
         self.load_objects()
@@ -50,11 +50,12 @@ class Game:
             size = self.screen_size
 
         self.player = Player(
-            (200, self.height - self.height // 5), (self.height // 5, self.height // 5)
+            (self.width // 10, self.height - self.height // 5), (self.height // 5, self.height // 5)
         )
         self.game_map = Map(self.screen_size, size)
-        for i in range(0, self.settings['background_layers_count']):
-            LoopedImage(f'bg/lay_{i}.png', 5 * i, size, self.background)
+
+        for i in range(0, self.settings['background_layers_count'] + 1):
+            LoopedImage(f'bg/lay_{i}.png', 3 * i, size, self.background)
 
         if self.settings['play_sfx']:
             self.coin_pick_up_sfx = pg.mixer.Sound('data/sfx/coin_pick_up.mp3')
@@ -67,7 +68,7 @@ class Game:
             self.check_events()
             self.update()
             self.render()
-        return self.score
+        return self.score_sum + self.score
 
     def check_events(self):
         for event in pg.event.get():
@@ -95,11 +96,11 @@ class Game:
             self.player.update()
             self.game_map.update()
             self.background.update()
-            for el in self.game_map.all_sprites:
+            for el in pg.sprite.spritecollide(self.player, self.game_map.all_sprites, dokill=False):
                 if pg.sprite.collide_mask(self.player, el):
                     if isinstance(el, Coin):
                         self.score += 1
-                        if self.score % 20 == 0:
+                        if self.score % 10 == 0:
                             self.game_map.up_speed()
                         if self.settings['play_sfx']:
                             self.coin_pick_up_sfx.play()
@@ -125,17 +126,13 @@ class Game:
                     Game.fps_text_template.format(int(self.clock.get_fps())), True, (255, 255, 255)
             )
             self.surf.blit(fps_text, (self.width - fps_text.get_rect().w - 10, 10))
-        if self.settings['motion_blur']:
-            for i, el in enumerate(self.screens, 1):
-                el.set_alpha(50 * i)
-                self.surf.blit(el, (0, 0))
-            self.screens = self.screens[1:] + [self.surf]
         if not self.in_game:
             self.surf.blit(self.game_over_surf, (0, 0))
         pg.display.update()
 
     def restart(self):
         self.in_game = True
+        self.score_sum += self.score
         self.score = 0
         self.background.empty()
         self.load_objects()

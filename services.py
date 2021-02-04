@@ -1,7 +1,8 @@
 import pygame as pg
-from random import choice, randint
+from random import randint
 
 SONG_END = pg.USEREVENT + 1
+pg.mixer.music.set_endevent(SONG_END)
 
 
 def load_im(name):

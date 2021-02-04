@@ -1,21 +1,20 @@
 from math import floor, ceil
+from random import choice
 from services import *
 
 
 class Player(pg.sprite.Sprite):
     run_anim_count = 6
-    run_anim_speed = 0.6
+    run_anim_speed = 0.5
     jump_anim_count = 9
     jump_anim_speed = 0.5
     slide_anim_count = 4
     slide_anim_speed = 0.5
-    vy = 35
-    g = 5
 
-    def __init__(self, pos, size, *groups):
+    def __init__(self, pos, im_size, *groups):
         super().__init__(*groups)
-        self.vy = Player.vy
-        self.g = Player.g
+        self.vy = im_size[0] // 6
+        self.g = self.vy // 6
         self.t = 0
         self.run_images = []
         self.run_anim_count = Player.run_anim_count
@@ -31,28 +30,28 @@ class Player(pg.sprite.Sprite):
         self.slide_anim_index = 0
         self.in_jump = False
         self.in_slide = False
-        self.load_animations(size)
+        self.load_animations(im_size)
         self.rect = self.run_images[0].get_rect()
         self.mask = pg.mask.from_surface(self.run_images[0])
         self.rect.x, self.rect.y = pos[0], pos[1] - self.rect.size[1]
         self.ground_y_coord = self.rect.y
 
-    def load_animations(self, size):
+    def load_animations(self, im_size):
         self.run_images = [
             pg.transform.scale(
-                load_im(f'player/run_{i}.png').convert_alpha(), size
+                load_im(f'player/run_{i}.png').convert_alpha(), im_size
             )
             for i in range(self.run_anim_count)
         ]
         self.jump_images = [
             pg.transform.scale(
-                load_im(f'player/jump_{i}.png').convert_alpha(), size
+                load_im(f'player/jump_{i}.png').convert_alpha(), im_size
             )
             for i in range(self.jump_anim_count)
         ]
         self.slide_images = [
             pg.transform.scale(
-                load_im(f'player/slide_{i}.png').convert_alpha(), size
+                load_im(f'player/slide_{i}.png').convert_alpha(), im_size
             )
             for i in range(self.slide_anim_count)
         ]
@@ -82,17 +81,18 @@ class Player(pg.sprite.Sprite):
                 self.in_jump = False
             else:
                 self.rect.y += (-self.vy + self.g * self.t)
+            if self.jump_anim_count - 1 - self.jump_anim_index > 0:
+                self.jump_anim_index += self.jump_anim_speed
+                self.mask = pg.mask.from_surface(self.jump_images[floor(self.jump_anim_index)])
             self.t += 1
-            self.jump_anim_index = (self.jump_anim_index + self.jump_anim_speed) % (self.jump_anim_count - 1)
-            self.mask = pg.mask.from_surface(self.jump_images[floor(self.jump_anim_index)])
         elif self.in_slide:
-            if self.slide_anim_index < 4 - self.slide_anim_speed:
-                self.slide_anim_index += self.slide_anim_speed
             if self.rect.y + 40 < self.ground_y_coord:
                 self.rect.y += 40
             else:
                 self.rect.y = self.ground_y_coord
-            self.mask = pg.mask.from_surface(self.slide_images[floor(self.slide_anim_index)])
+            if self.slide_anim_count - 1 - self.slide_anim_index > 0:
+                self.slide_anim_index += self.slide_anim_speed
+                self.mask = pg.mask.from_surface(self.slide_images[floor(self.slide_anim_index)])
         else:
             self.run_anim_ind = (self.run_anim_ind + self.run_anim_speed) % (self.run_anim_count - 1)
             self.mask = pg.mask.from_surface(self.run_images[floor(self.run_anim_ind)])
@@ -108,7 +108,9 @@ class Player(pg.sprite.Sprite):
 
 class Map:
     cell_size = 300
-    speed = 40
+    speed = 30
+    first_floor = [0] * 2 + [1] * 4 + [2] * 4
+    second_floor = [0] * 7 + [3] * 3
 
     def __init__(self, screen_size, ground_size):
         self.screen_size = screen_size
@@ -119,11 +121,13 @@ class Map:
         self.free_ghosts = []
         self.free_rocks = []
         self.free_coins = []
+        self.first_floor = Map.first_floor
+        self.second_floor = Map.second_floor
         self.frame = 0
         self.cell_size = Map.cell_size
         self.speed = Map.speed
         self.load_freq = ceil(self.cell_size / self.speed)
-        self.game_map = [[0, 0], [0, 0], [0, 0]]
+        self.game_map = [[0, 0], [0, 0]]
         self.ground = LoopedImage('ground.png', self.speed, ground_size, self.all_sprites)
 
     def up_speed(self):
@@ -134,12 +138,12 @@ class Map:
     def generate_next(self):
         new_items = []
         while True:
-            item = choice([0] * 2 + [1] * 4 + [2] * 4)
+            item = choice(self.first_floor)
             if self.game_map[-2][0] != 2 and self.game_map[-1][0] != 2 and self.game_map[-1][1] != 3 or item != 2:
                 new_items.append(item)
                 break
         while True:
-            item = choice([0] * 7 + [3] * 3)
+            item = choice(self.second_floor)
             if new_items[0] != 2 and self.game_map[-1][0] != 2 and self.game_map[-1][1] != 3 or item != 3:
                 new_items.append(item)
                 break
