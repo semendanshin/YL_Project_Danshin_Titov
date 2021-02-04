@@ -1,6 +1,11 @@
 import pygame, os
 
 
+'''
+TODO: сделать нормальный текст
+TODO: сделать или убрать магазин
+'''
+
 def load_im(name):
     fullname = f'data/imgs/{name}'
     try:
@@ -57,7 +62,7 @@ class ClickButton(pygame.sprite.Sprite):
 
 class CheckBox(pygame.sprite.Sprite):
     '''Класс создает check box'''
-    def __init__(self, i, X, Y, *groups):
+    def __init__(self, i, X, Y, x, y, check, *groups):
         '''хранит текущее состояние (картинка + число), размеры, позицию, картинки для всех возможных состояний'''
         super().__init__(*groups)
         image0 = load_im('check0.png').convert_alpha()
@@ -68,15 +73,15 @@ class CheckBox(pygame.sprite.Sprite):
         self.i = i
         self.image = self.image0
         self.rect = self.image.get_rect()
-        x, y = X // 2, Y // 2
         x += (self.rect.width + 20) * i
         self.rect.x, self.rect.y = x - self.rect.width // 2, y - self.rect.height // 2
-        self.update(3)
+        self.type = 0
+        self.update(check)
 
     def update(self, ind):
         '''если индекс кнопки, на которую нажали совпадает с индексом кнопки, но отображается картинка 1-ого состояния
         если передан индекс равный кол-во кнопок, значит нажатие было не по кнопкам'''
-        if ind == 4:
+        if ind == len(self.groups()[0].sprites()):
             return None
         if self.i == ind:
             self.type = 1
@@ -89,7 +94,46 @@ class CheckBox(pygame.sprite.Sprite):
         screen.blit(self.image, self.rect)
 
 
+class Setting:
+    '''класс объеднидяет в себе полнцоенную настройку.
+    Отображает параметр настройки, значения кнопок и сами кнопки, реализует все методы'''
+    def __init__(self, i, n, check):
+        self.group = MySpriteGroup()
+        self.boxs = MySpriteGroup()
+        x, y = 300, 100 + i * 250
+        # создание и отрисовка описания настройки
+
+        # создание и отрисовка пояснений к кнопка
+
+        # создание и отрисовка кнопок
+        for i in range(n):
+            CheckBox(i, screen.get_width(), screen.get_height(), x, y, check, self.boxs)
+
+
+    def update(self, pos):
+        i = 0
+        for sprite in self.boxs.sprites():
+            if sprite.rect.collidepoint(pos):
+                sprite.type = 1
+                break
+            i += 1
+        self.boxs.update(i)
+
+    def draw(self, screen):
+        self.group.draw(screen)
+        self.boxs.draw(screen)
+
+    def get_clicked(self):
+        '''возвращает индекс кнопки, которую нажали'''
+        i = 0
+        for sprite in self.boxs.sprites():
+            if sprite.type == 1:
+                return i
+            i += 1
+
+
 class Menu:
+    '''главное меню'''
     def __init__(self, screen):
         self.screen = screen
         self.running = True
@@ -99,74 +143,99 @@ class Menu:
         ClickButton('button3.png', pp3, 2, screen.get_width(), screen.get_height(), self.buttons)
 
     def main_loop(self):
+        self.update_background()
+        self.render()
         while self.running:
             for event in pygame.event.get():
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE or event.type == pygame.QUIT:
                     self.running = False
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     self.run_next_condition(event.pos)
-            self.update()
-            self.render()
+                    self.update_background()
+                    self.render()
             pygame.display.update()
 
-    def update(self):
-        pass
+    def update_background(self):
+        '''обновление фона'''
+        with open('data/settings.txt', 'r', encoding='utf8') as f:
+            n = int(f.readline().split('==')[1][0])
+        self.background = []
+        for i in range(n + 1):
+            self.background.append(load_im(f'bg/lay_{i}.png'))
+
+    def draw_background(self, screen):
+        '''отрисовка фона'''
+        for i in self.background:
+            screen.blit(i, (0, 0))
 
     def render(self):
         self.screen.fill((0, 0, 0))
+        self.draw_background(self.screen)
         self.buttons.draw(self.screen)
 
     def run_next_condition(self, pos):
+        '''запускается при нажатии кнопки и запускает состояние игры, которое соответствует кнопке'''
         for bt in self.buttons.sprites():
             if bt.collide(pos):
                 bt.func()
 
 
 class Settings:
+    '''окно настроек'''
+    options = 4
+    number_of_options = [5, 2, 2, 2]
+
     def __init__(self, screen):
         self.screen = screen
         self.running = True
-        self.checkboxs = MySpriteGroup()
-        for _ in range(4):
-            CheckBox(_, screen.get_width(), screen.get_height(), self.checkboxs)
+        self.settings = []
+        with open('data/settings.txt', 'r', encoding='utf8') as f:
+            openes = list(map(lambda s: int(s.split('==')[1][0]), f.readlines()))
+        for i in range(Settings.options):
+            self.settings.append(Setting(i, Settings.number_of_options[i], openes[i]))
+
+    def update_background(self):
+        with open('data/settings.txt', 'r', encoding='utf8') as f:
+            n = int(f.readline().split('==')[1][0])
+        self.background = []
+        for i in range(n + 1):
+            self.background.append(load_im(f'bg/lay_{i}.png'))
+
+    def draw_background(self, screen):
+        for i in self.background:
+            screen.blit(i, (0, 0))
 
     def main_loop(self):
+        self.update_background()
+        self.render()
         while self.running:
             for event in pygame.event.get():
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE or event.type == pygame.QUIT:
                     self.running = False
                 if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
                     self.update(event.pos)
-                self.render()
+                    self.render()
             pygame.display.update()
         self.running = True
-        self.exit()
 
     def update(self, pos):
-        i = 0
-        for sprite in self.checkboxs.sprites():
-            if sprite.rect.collidepoint(pos):
-                sprite.type = 1
-                break
-            i += 1
-        self.checkboxs.update(i)
+        for i in self.settings:
+            i.update(pos)
+            self.update_setting()
+            self.update_background()
 
     def render(self):
         self.screen.fill((0, 0, 0))
-        self.checkboxs.draw(self.screen)
+        self.draw_background(self.screen)
+        for i in self.settings:
+            i.draw(self.screen)
 
-    def exit(self):
-        '''Функция запускается когда пользователь возвращается в меню и сохраняет настройки, указанные пользователем'''
-        i = 1
-        for sprite in self.checkboxs.sprites():
-            if sprite.type == 1:
-                break
-            i += 1
+    def update_setting(self):
+        '''Функция обновляет настройки'''
         f = open('data/settings.txt', 'r', encoding='utf8')
         l = list(f.readlines())
-        print(l)
-        l[0] = l[0].split('==')[0] + '==' + str(i) + '\n'
-        print(l)
+        for i in range(len(l)):
+            l[i] = l[i].split('==')[0] + '==' + str(self.settings[i].get_clicked()) + '\n'
         f.close()
         f = open('data/settings.txt', 'w', encoding='utf8')
         f.writelines(l)
