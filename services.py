@@ -1,3 +1,5 @@
+import os
+import sys
 import pygame as pg
 from random import randint
 
@@ -5,13 +7,21 @@ SONG_END = pg.USEREVENT + 1
 pg.mixer.music.set_endevent(SONG_END)
 
 
-def load_im(name):
-    fullname = f'data/imgs/{name}'
+def load_im(name, colorkey=None):
+    fullname = os.path.join('data', 'imgs', name)
     try:
-        return pg.image.load(fullname)
+        img = pg.image.load(fullname)
     except FileNotFoundError:
         print(f"Файл с изображением '{fullname}' не найден")
-        exit(0)
+        sys.exit()
+    if colorkey:
+        img = img.convert()
+        if colorkey == -1:
+            colorkey = img.get_at((0, 0))
+        img.set_colorkey(colorkey)
+    else:
+        img = img.convert_alpha()
+    return img
 
 
 class MusicPlayer:
