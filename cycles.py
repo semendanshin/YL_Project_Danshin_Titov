@@ -146,3 +146,114 @@ class Game:
         self.coins = 0
         self.background.empty()
         self.load_objects()
+
+
+class Menu:
+    """главное меню"""
+    def __init__(self, screen):
+        self.screen = screen
+        self.running = True
+        self.buttons = MySpriteGroup()
+        ClickButton('button1.png', Game(screen).main_loop, 0, screen.get_width(), screen.get_height(), self.buttons)
+        ClickButton('button2.png', Settings(screen).main_loop, 1, screen.get_width(), screen.get_height(), self.buttons)
+        ClickButton('button3.png', exit, 2, screen.get_width(), screen.get_height(), self.buttons)
+
+    def main_loop(self):
+        self.load_background()
+        self.render()
+        while self.running:
+            for event in pg.event.get():
+                if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE or event.type == pg.QUIT:
+                    self.running = False
+                if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+                    self.run_next_condition(event.pos)
+                    self.load_background()
+                    self.render()
+            pg.display.update()
+
+    def load_background(self):
+        """обновление фона"""
+        with open('data/settings.txt', 'r', encoding='utf8') as f:
+            n = int(f.readline().split('==')[1][0])
+        self.background = []
+        for i in range(n + 1):
+            self.background.append(load_im(f'bg/lay_{i}.png'))
+
+    def draw_background(self, screen):
+        """отрисовка фона"""
+        for i in self.background:
+            screen.blit(i, (0, 0))
+
+    def render(self):
+        self.screen.fill((0, 0, 0))
+        self.draw_background(self.screen)
+        self.buttons.draw(self.screen)
+
+    def run_next_condition(self, pos):
+        """запускается при нажатии кнопки и запускает состояние игры, которое соответствует кнопке"""
+        for bt in self.buttons.sprites():
+            if bt.collide(pos):
+                bt.func()
+
+
+class Settings:
+    """Окно настроек"""
+    options = 4
+    number_of_options = [5, 2, 2, 2]
+
+    def __init__(self, surf):
+        self.screen_size = self.width, self.height = surf.get_width(), surf.get_height()
+        self.surf = surf
+        self.running = True
+        self.settings = []
+        with open('data/settings.txt', 'r', encoding='utf8') as f:
+            openes = list(map(lambda s: int(s.strip().split('==')[1][0]), f.readlines()))
+        for i in range(Settings.options):
+            self.settings.append(Setting(self.screen_size, i, Settings.number_of_options[i], openes[i]))
+
+    def load_background(self):
+        with open('data/settings.txt', 'r', encoding='utf8') as f:
+            n = int(f.readline().split('==')[1][0])
+        self.background = []
+        for i in range(n + 1):
+            self.background.append(load_im(f'bg/lay_{i}.png'))
+
+    def draw_background(self, screen):
+        for i in self.background:
+            screen.blit(i, (0, 0))
+
+    def main_loop(self):
+        self.load_background()
+        self.render()
+        while self.running:
+            for event in pg.event.get():
+                if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE or event.type == pg.QUIT:
+                    self.running = False
+                if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+                    self.update(event.pos)
+                    self.render()
+            pg.display.update()
+        self.running = True
+
+    def update(self, pos):
+        for i in self.settings:
+            i.update(pos)
+            self.update_setting()
+            self.load_background()
+
+    def render(self):
+        self.surf.fill((0, 0, 0))
+        self.draw_background(self.surf)
+        for i in self.settings:
+            i.draw(self.surf)
+
+    def update_setting(self):
+        """Функция обновляет настройки"""
+        f = open('data/settings.txt', 'r', encoding='utf8')
+        l = list(f.readlines())
+        for i in range(len(l)):
+            l[i] = l[i].split('==')[0] + '==' + str(self.settings[i].get_clicked()) + '\n'
+        f.close()
+        f = open('data/settings.txt', 'w', encoding='utf8')
+        f.writelines(l)
+        f.close()

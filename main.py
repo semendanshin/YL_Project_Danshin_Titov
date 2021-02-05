@@ -1,5 +1,5 @@
 import pygame as pg
-from cycles import Game
+from cycles import Menu
 
 
 # TODO: Сделать частицы для персонажа
@@ -12,4 +12,4 @@ if __name__ == '__main__':
     pg.display.set_caption('раннер')
     display_size = pg.display.Info().current_w, pg.display.Info().current_h
     screen = pg.display.set_mode(display_size)
-    Game(screen).main_loop()
+    Menu(screen).main_loop()
