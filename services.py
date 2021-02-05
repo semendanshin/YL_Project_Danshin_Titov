@@ -2,9 +2,19 @@ import os
 import sys
 import pygame as pg
 from random import randint
+from math import ceil
 
 SONG_END = pg.USEREVENT + 1
 pg.mixer.music.set_endevent(SONG_END)
+
+
+def calculate_size_for_background(screen_size):
+    if screen_size[0] / screen_size[1] > 16 / 9:
+        return screen_size[0], ceil(screen_size[0] / 16 * 9)
+    elif screen_size[0] / screen_size[1] < 16 / 9:
+        return ceil(screen_size[1] / 9 * 16), screen_size[1]
+    else:
+        return screen_size
 
 
 def load_im(name, colorkey=None):

@@ -5,7 +5,7 @@ FPS = 30
 
 
 class Game:
-    font = 'data/MinimalPixel.ttf'
+    font = 'PressStart2P.ttf'
     score_text_template = 'Score:{}'
     coins_text_template = 'Coins:{}'
     fps_text_template = 'FPS:{}'
@@ -13,9 +13,9 @@ class Game:
 
     def __init__(self, surf):
         self.screen_size = self.width, self.height = surf.get_width(), surf.get_height()
-        self.fps_font = pg.font.Font(Game.font, self.width // 80)
-        self.score_font = pg.font.Font(Game.font, self.width // 60)
-        self.coins_font = pg.font.Font(Game.font, self.width // 60)
+        self.fps_font = pg.font.Font('data/' + Game.font, self.width // 80)
+        self.score_font = pg.font.Font('data/' + Game.font, self.width // 60)
+        self.coins_font = pg.font.Font('data/' + Game.font, self.width // 60)
         self.background = MySpriteGroup()
         self.clock = pg.time.Clock()
         self.surf = surf
@@ -42,18 +42,13 @@ class Game:
         self.game_over_surf = pg.Surface(self.screen_size, pg.SRCALPHA)
         self.game_over_surf.fill((0, 0, 0))
         self.game_over_surf.set_alpha(150)
-        game_over_text = pg.font.Font('data/PressStart2P-vaV7.ttf', self.width // 40).render(
+        game_over_text = pg.font.Font('data/' + Game.font, self.width // 40).render(
             Game.game_over_text_template.format(int(self.clock.get_fps())), True, (255, 255, 255)
         )
         self.game_over_surf.blit(game_over_text, (self.width // 2 - game_over_text.get_rect().w // 2,
                                                   self.height // 2 - game_over_text.get_rect().h // 2))
 
-        if self.width / self.height > 16 / 9:
-            size = (self.width, ceil(self.width / 16 * 9))
-        elif self.width / self.height < 16 / 9:
-            size = (ceil(self.height / 9 * 16), self.height)
-        else:
-            size = self.screen_size
+        size = calculate_size_for_background(self.screen_size)
 
         self.player = Player(
             (self.width // 10, self.height - self.height // 5), (self.height // 5, self.height // 5)
@@ -187,27 +182,21 @@ class Menu:
             if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE or event.type == pg.QUIT:
                 self.running = False
             if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
-                for button in self.buttons:
+                for i, button in enumerate(self.buttons):
                     if button.rect.collidepoint(event.pos):
-                        if button.index == 0:
+                        if i == 0:
                             Game(self.surf).main_loop()
-                        elif button.index == 1:
+                        elif i == 1:
                             Settings(self.surf).main_loop()
                             self.read_settings()
                             self.load_background()
-                        if button.index == 2:
+                        if i == 2:
                             sys.exit(0)
 
     def load_background(self):
         """обновление фона"""
         self.background.empty()
-        if self.width / self.height > 16 / 9:
-            size = (self.width, ceil(self.width / 16 * 9))
-        elif self.width / self.height < 16 / 9:
-            size = (ceil(self.height / 9 * 16), self.height)
-        else:
-            size = self.screen_size
-
+        size = calculate_size_for_background(self.screen_size)
         for i in range(0, self.settings['background_layers_count'] + 1):
             LoopedImage(f'bg/lay_{i}.png', 3 * i, size, self.background)
 
@@ -237,53 +226,63 @@ class Settings:
         self.surf = surf
         self.running = True
         self.settings = []
-        with open('data/settings.txt', 'r', encoding='utf8') as f:
-            openes = list(map(lambda s: int(s.strip().split('==')[1][0]), f.readlines()))
-        for i in range(Settings.options):
-            self.settings.append(Setting(self.screen_size, i, Settings.number_of_options[i], openes[i]))
+        self.settings_group = []
+        self.clock = pg.time.Clock()
+        self.background = MySpriteGroup()
+        self.read_settings()
+        self.load_background()
+        for i in range(len(self.settings)):
+            self.settings_group.append(Setting(self.screen_size, i, Settings.number_of_options[i], self.settings[i][1]))
+
+    def read_settings(self):
+        with open('data/settings.txt', encoding='UTF-8') as f:
+            self.settings.clear()
+            for el in f.readlines():
+                key, value = el.strip().split('==')
+                value = int(value)
+                self.settings.append((key, value))
 
     def load_background(self):
-        with open('data/settings.txt', 'r', encoding='utf8') as f:
-            n = int(f.readline().split('==')[1][0])
-        self.background = []
-        for i in range(n + 1):
-            self.background.append(load_im(f'bg/lay_{i}.png'))
-
-    def draw_background(self, screen):
-        for i in self.background:
-            screen.blit(i, (0, 0))
+        """обновление фона"""
+        self.background.empty()
+        size = calculate_size_for_background(self.screen_size)
+        for i in range(0, self.settings[0][1] + 1):
+            LoopedImage(f'bg/lay_{i}.png', 3 * i, size, self.background)
 
     def main_loop(self):
-        self.load_background()
-        self.render()
         while self.running:
-            for event in pg.event.get():
-                if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE or event.type == pg.QUIT:
-                    self.running = False
-                if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
-                    self.update(event.pos)
-                    self.render()
-            pg.display.update()
-        self.running = True
+            self.clock.tick(FPS)
+            self.check_events()
+            self.update()
+            self.render()
 
-    def update(self, pos):
-        for i in self.settings:
-            i.update(pos)
-            self.update_setting()
-            self.load_background()
+    def check_events(self):
+        for event in pg.event.get():
+            if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE or event.type == pg.QUIT:
+                self.running = False
+            if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+                for el in self.settings_group:
+                    el.update(event.pos)
+                self.update_setting()
+                self.read_settings()
+                self.load_background()
+
+    def update(self):
+        self.background.update()
 
     def render(self):
         self.surf.fill((0, 0, 0))
-        self.draw_background(self.surf)
-        for i in self.settings:
+        self.background.draw(self.surf)
+        for i in self.settings_group:
             i.draw(self.surf)
+        pg.display.update()
 
     def update_setting(self):
         """Функция обновляет настройки"""
         f = open('data/settings.txt', 'r', encoding='utf8')
         l = list(f.readlines())
         for i in range(len(l)):
-            l[i] = l[i].split('==')[0] + '==' + str(self.settings[i].get_clicked()) + '\n'
+            l[i] = l[i].split('==')[0] + '==' + str(self.settings_group[i].get_clicked()) + '\n'
         f.close()
         f = open('data/settings.txt', 'w', encoding='utf8')
         f.writelines(l)

@@ -271,11 +271,10 @@ class ClickButton(pg.sprite.Sprite):
     def __init__(self, filename, index, screen_size, *groups):
         """Кнопка хранит своё изображение, размеры, позицию, а также функцию, которая запускается при нажатии на нее"""
         super().__init__(*groups)
-        self.index = index
         self.image = load_im(filename)
         self.image = pg.transform.scale(
             self.image,
-            (screen_size[0] // 7, int(screen_size[0] // 7 * self.image.get_height() / self.image.get_width()))
+            (screen_size[1] // 3, int(screen_size[1] // 3 * self.image.get_height() / self.image.get_width()))
             )
         self.rect = self.image.get_rect()
         self.rect.x = screen_size[0] // 2 - self.rect.w // 2
@@ -292,32 +291,19 @@ class ClickButton(pg.sprite.Sprite):
 
 class CheckBox(pg.sprite.Sprite):
     """Класс создает check box"""
-    def __init__(self, index, size, x, y, check, *groups):
+    def __init__(self, index, size, x, y, checked, *groups):
         """хранит текущее состояние (картинка + число), размеры, позицию, картинки для всех возможных состояний"""
         super().__init__(*groups)
         self.image0 = pg.transform.scale(load_im('check0.png'), size)
         self.image1 = pg.transform.scale(load_im('check1.png'), size)
         self.rect = self.image0.get_rect()
         self.index = index
+        self.checked = checked
         x += (self.rect.width + 20) * index
         self.rect.x, self.rect.y = x - self.rect.width // 2, y - self.rect.height // 2
-        self.state = 0
-        self.update(check)
-
-    def update(self, ind):
-        """Eсли индекс кнопки, на которую нажали совпадает с индексом кнопки, но отображается картинка 1-ого состояния
-        если передан индекс равный кол-во кнопок, значит нажатие было не по кнопкам"""
-        if ind == len(self.groups()[0].sprites()):
-            return None
-        if self.index == ind:
-            self.state = 1
-            self.image = self.image1
-        else:
-            self.state = 0
-            self.image = self.image0
 
     def draw(self, screen):
-        screen.blit(self.image1 if self.state else self.image0, self.rect)
+        screen.blit(self.image1 if self.checked else self.image0, self.rect)
 
 
 class Setting:
@@ -333,23 +319,22 @@ class Setting:
 
         # создание и отрисовка кнопок
         for i in range(check_box_count):
-            CheckBox(i, (screen_size[0] // 10, screen_size[0] // 10), x, y, check, self.boxes)
+            CheckBox(i, (screen_size[1] // 10, screen_size[1] // 10), x, y, check == i, self.boxes)
 
     def update(self, pos):
-        i = 0
-        for sprite in self.boxes.sprites():
-            if sprite.rect.collidepoint(pos):
-                sprite.type = 1
-                break
-            i += 1
-        self.boxes.update(i)
+        if [el for el in self.boxes if el.rect.collidepoint(pos)]:
+            for sprite in self.boxes:
+                if sprite.rect.collidepoint(pos):
+                    sprite.checked = True
+                else:
+                    sprite.checked = False
 
     def draw(self, screen):
         self.group.draw(screen)
         self.boxes.draw(screen)
 
-    def get_clicked(self):
-        """возвращает индекс кнопки, которую нажали"""
-        for sprite in self.boxes.sprites():
-            if sprite.state == 1:
-                return sprite.index
+    def get_clicked(self) -> int:
+        """Возвращает индекс нажатой кнопки"""
+        for el in self.boxes:
+            if el.checked:
+                return el.index
