@@ -268,18 +268,18 @@ class LoopedImage(pg.sprite.Sprite):
 class ClickButton(pg.sprite.Sprite):
     """Класс создает кнопку на которую можно нажимать"""
 
-    def __init__(self, name, func, i, X, Y, *groups):
+    def __init__(self, filename, index, screen_size, *groups):
         """Кнопка хранит своё изображение, размеры, позицию, а также функцию, которая запускается при нажатии на нее"""
         super().__init__(*groups)
-        self.name = name
-        self.func = func
-        im = load_im(name).convert_alpha()
-        k = im.get_height() / im.get_width()
-        self.image = pg.transform.scale(load_im(name).convert_alpha(), (X // 7, int(X // 7 * k)))
+        self.index = index
+        self.image = load_im(filename)
+        self.image = pg.transform.scale(
+            self.image,
+            (screen_size[0] // 7, int(screen_size[0] // 7 * self.image.get_height() / self.image.get_width()))
+            )
         self.rect = self.image.get_rect()
-        x, y = X // 2, Y // 2
-        y += (self.rect.height + 50) * i
-        self.rect.x, self.rect.y = x - self.rect.width // 2, y - self.rect.height // 2
+        self.rect.x = screen_size[0] // 2 - self.rect.w // 2
+        self.rect.y = screen_size[1] // 2 + (self.rect.height + 50) * index - self.rect.h // 2
 
     def collide(self, pos):
         """Проверка что точка лежит на кнопке"""
@@ -288,9 +288,6 @@ class ClickButton(pg.sprite.Sprite):
     def draw(self, screen):
         """Отрисовка"""
         screen.blit(self.image, self.rect)
-
-    def update(self, *args):
-        pass
 
 
 class CheckBox(pg.sprite.Sprite):
@@ -353,8 +350,6 @@ class Setting:
 
     def get_clicked(self):
         """возвращает индекс кнопки, которую нажали"""
-        i = 0
         for sprite in self.boxes.sprites():
             if sprite.state == 1:
-                return i
-            i += 1
+                return sprite.index

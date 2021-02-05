@@ -1,9 +1,11 @@
 from objects import *
+import sys
 
 FPS = 30
 
 
 class Game:
+    font = 'data/MinimalPixel.ttf'
     score_text_template = 'Score:{}'
     coins_text_template = 'Coins:{}'
     fps_text_template = 'FPS:{}'
@@ -11,9 +13,9 @@ class Game:
 
     def __init__(self, surf):
         self.screen_size = self.width, self.height = surf.get_width(), surf.get_height()
-        self.fps_font = pg.font.Font('data/PressStart2P-vaV7.ttf', self.width // 80)
-        self.score_font = pg.font.Font('data/PressStart2P-vaV7.ttf', self.width // 60)
-        self.coins_font = pg.font.Font('data/PressStart2P-vaV7.ttf', self.width // 60)
+        self.fps_font = pg.font.Font(Game.font, self.width // 80)
+        self.score_font = pg.font.Font(Game.font, self.width // 60)
+        self.coins_font = pg.font.Font(Game.font, self.width // 60)
         self.background = MySpriteGroup()
         self.clock = pg.time.Clock()
         self.surf = surf
@@ -78,6 +80,8 @@ class Game:
         for event in pg.event.get():
             if event.type == pg.KEYDOWN:
                 if event.key == pg.K_ESCAPE:
+                    if self.settings['play_music']:
+                        pg.mixer.music.stop()
                     self.running = False
                 if self.in_game:
                     if event.key == pg.K_SPACE or event.key == pg.K_UP:
@@ -150,44 +154,71 @@ class Game:
 
 class Menu:
     """главное меню"""
-    def __init__(self, screen):
-        self.screen = screen
+    def __init__(self, surf):
+        self.screen_size = self.width, self.height = surf.get_width(), surf.get_height()
+        self.surf = surf
         self.running = True
+        self.settings = dict()
         self.buttons = MySpriteGroup()
-        ClickButton('button1.png', Game(screen).main_loop, 0, screen.get_width(), screen.get_height(), self.buttons)
-        ClickButton('button2.png', Settings(screen).main_loop, 1, screen.get_width(), screen.get_height(), self.buttons)
-        ClickButton('button3.png', exit, 2, screen.get_width(), screen.get_height(), self.buttons)
+        self.background = MySpriteGroup()
+        self.clock = pg.time.Clock()
+        ClickButton('button1.png', 0, self.screen_size, self.buttons)
+        ClickButton('button2.png', 1, self.screen_size, self.buttons)
+        ClickButton('button3.png', 2, self.screen_size, self.buttons)
+        self.read_settings()
+        self.load_background()
+
+    def read_settings(self):
+        with open('data/settings.txt', encoding='UTF-8') as f:
+            for el in f.readlines():
+                key, value = el.strip().split('==')
+                value = int(value)
+                self.settings[key] = value
 
     def main_loop(self):
-        self.load_background()
-        self.render()
         while self.running:
-            for event in pg.event.get():
-                if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE or event.type == pg.QUIT:
-                    self.running = False
-                if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
-                    self.run_next_condition(event.pos)
-                    self.load_background()
-                    self.render()
-            pg.display.update()
+            self.clock.tick(FPS)
+            self.check_events()
+            self.update()
+            self.render()
+
+    def check_events(self):
+        for event in pg.event.get():
+            if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE or event.type == pg.QUIT:
+                self.running = False
+            if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
+                for button in self.buttons:
+                    if button.rect.collidepoint(event.pos):
+                        if button.index == 0:
+                            Game(self.surf).main_loop()
+                        elif button.index == 1:
+                            Settings(self.surf).main_loop()
+                            self.read_settings()
+                            self.load_background()
+                        if button.index == 2:
+                            sys.exit(0)
 
     def load_background(self):
         """обновление фона"""
-        with open('data/settings.txt', 'r', encoding='utf8') as f:
-            n = int(f.readline().split('==')[1][0])
-        self.background = []
-        for i in range(n + 1):
-            self.background.append(load_im(f'bg/lay_{i}.png'))
+        self.background.empty()
+        if self.width / self.height > 16 / 9:
+            size = (self.width, ceil(self.width / 16 * 9))
+        elif self.width / self.height < 16 / 9:
+            size = (ceil(self.height / 9 * 16), self.height)
+        else:
+            size = self.screen_size
 
-    def draw_background(self, screen):
-        """отрисовка фона"""
-        for i in self.background:
-            screen.blit(i, (0, 0))
+        for i in range(0, self.settings['background_layers_count'] + 1):
+            LoopedImage(f'bg/lay_{i}.png', 3 * i, size, self.background)
+
+    def update(self):
+        self.background.update()
 
     def render(self):
-        self.screen.fill((0, 0, 0))
-        self.draw_background(self.screen)
-        self.buttons.draw(self.screen)
+        self.surf.fill((0, 0, 0))
+        self.background.draw(self.surf)
+        self.buttons.draw(self.surf)
+        pg.display.update()
 
     def run_next_condition(self, pos):
         """запускается при нажатии кнопки и запускает состояние игры, которое соответствует кнопке"""
