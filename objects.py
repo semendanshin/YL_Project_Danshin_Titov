@@ -323,16 +323,13 @@ class Setting:
 
 class ClickButton(pg.sprite.Sprite):
     """Класс кнопки, на которую можно нажимать"""
-    def __init__(self, filename, index, screen_size, *groups):
+    def __init__(self, filename, index, size, pos, *groups):
         super().__init__(*groups)
         self.image = load_im(filename)
-        self.image = pg.transform.scale(
-            self.image,
-            (screen_size[1] // 3, int(screen_size[1] // 3 * self.image.get_height() / self.image.get_width()))
-            )
+        self.image = pg.transform.scale(self.image, (size, size * self.image.get_height() // self.image.get_width()))
         self.rect = self.image.get_rect()
-        self.rect.x = screen_size[0] // 2 - self.rect.w // 2
-        self.rect.y = screen_size[1] // 2 + (self.rect.height + 50) * index - self.rect.h // 2
+        self.rect.x = pos[0] - self.rect.w // 2
+        self.rect.y = pos[1] + (self.rect.h + 50) * index - self.rect.h // 2
 
     def draw(self, screen):
         """Отрисовка"""

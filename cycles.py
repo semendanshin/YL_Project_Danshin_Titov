@@ -24,7 +24,7 @@ class Menu:
     def create_buttons(self):
         """Создаёт кнопки"""
         for i in range(Menu.buttons_count):
-            ClickButton(f'button{i}.png', i, self.screen_size, self.buttons)
+            ClickButton(f'button{i}.png', i, self.height // 3, (self.width // 2, self.height // 2), self.buttons)
 
     def read_settings(self):
         """Чтение настроек из файла"""
