@@ -2,11 +2,6 @@ import pygame as pg
 from cycles import Menu
 
 
-# TODO: Сделать частицы для персонажа
-# TODO: Сделать ограничение для слайда
-# TODO: Переписать прыжок
-
-
 if __name__ == '__main__':
     pg.init()
     pg.display.set_caption('Бегущий пацанчик')
