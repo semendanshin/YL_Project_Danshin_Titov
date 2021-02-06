@@ -13,12 +13,14 @@ class Menu:
         self.surf = surf
         self.running = True
         self.settings = dict()
+        self.statistics = dict()
         self.buttons = MySpriteGroup()
         self.background = MySpriteGroup()
         self.clock = pg.time.Clock()
         self.read_settings()
         self.load_background()
         self.create_buttons()
+        self.read_statistics()
         self.title_surf = pg.Surface(self.screen_size, pg.SRCALPHA)
         self.title_surf.set_alpha(255)
         title_text = pg.font.Font('data/' + FONT, self.width // 20).render(
@@ -39,6 +41,18 @@ class Menu:
                 key, value = el.strip().split('==')
                 value = int(value)
                 self.settings[key] = value
+
+    def read_statistics(self):
+        with open('data/statistics.txt', encoding='UTF-8') as f:
+            for el in f.readlines():
+                key, value = el.strip().split('==')
+                value = int(value)
+                self.statistics[key] = value
+
+    def save_statistics(self):
+        with open('data/statistics.txt', 'w', encoding='UTF-8') as f:
+            for el in self.statistics.keys():
+                f.write('=='.join([el, str(self.statistics[el])]) + '\n')
 
     def load_background(self):
         """Загрузка фона"""
@@ -65,7 +79,10 @@ class Menu:
                 for i, button in enumerate(self.buttons):
                     if button.rect.collidepoint(event.pos):
                         if i == 0:
-                            Game(self.surf).main_loop()
+                            coins, score = Game(self.surf).main_loop()
+                            self.statistics['score'] = max(score, self.statistics['score'])
+                            self.statistics['coins'] += coins
+                            self.save_statistics()
                         elif i == 1:
                             Settings(self.surf).main_loop()
                             self.read_settings()
