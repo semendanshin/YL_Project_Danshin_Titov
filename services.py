@@ -4,6 +4,11 @@ import pygame as pg
 from random import randint
 from math import ceil
 
+
+FONT = 'PressStart2P.ttf'
+GAME_TITLE = 'бегущий пацанчик'
+FPS = 30
+
 SONG_END = pg.USEREVENT + 1
 pg.mixer.music.set_endevent(SONG_END)
 

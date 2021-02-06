@@ -1,7 +1,6 @@
 from objects import *
+from services import FONT, GAME_TITLE, FPS
 import sys
-
-FPS = 30
 
 
 class Menu:
@@ -20,6 +19,13 @@ class Menu:
         self.read_settings()
         self.load_background()
         self.create_buttons()
+        self.title_surf = pg.Surface(self.screen_size, pg.SRCALPHA)
+        self.title_surf.set_alpha(255)
+        title_text = pg.font.Font('data/' + FONT, self.width // 20).render(
+            GAME_TITLE, True, (255, 255, 255)
+        )
+        self.title_surf.blit(title_text, (self.width // 2 - title_text.get_rect().w // 2,
+                                          self.height // 7))
 
     def create_buttons(self):
         """Создаёт кнопки"""
@@ -76,11 +82,11 @@ class Menu:
         self.surf.fill((0, 0, 0))
         self.background.draw(self.surf)
         self.buttons.draw(self.surf)
+        self.surf.blit(self.title_surf, (0, 0))
         pg.display.update()
 
 
 class Game:
-    font = 'PressStart2P.ttf'
     score_text_template = 'Score:{}'
     coins_text_template = 'Coins:{}'
     fps_text_template = 'FPS:{}'
@@ -113,13 +119,13 @@ class Game:
 
     def load_objects(self):
         """Загрузка элеметов"""
-        self.fps_font = pg.font.Font('data/' + Game.font, self.width // 80)
-        self.score_and_coins_font = pg.font.Font('data/' + Game.font, self.width // 60)
+        self.fps_font = pg.font.Font('data/' + FONT, self.width // 80)
+        self.score_and_coins_font = pg.font.Font('data/' + FONT, self.width // 60)
 
         self.game_over_surf = pg.Surface(self.screen_size, pg.SRCALPHA)
         self.game_over_surf.fill((0, 0, 0))
         self.game_over_surf.set_alpha(150)
-        game_over_text = pg.font.Font('data/' + Game.font, self.width // 40).render(
+        game_over_text = pg.font.Font('data/' + FONT, self.width // 40).render(
             Game.game_over_text_template.format(int(self.clock.get_fps())), True, (255, 255, 255)
         )
         self.game_over_surf.blit(game_over_text, (self.width // 2 - game_over_text.get_rect().w // 2,

@@ -285,7 +285,6 @@ class LoopedImage(pg.sprite.Sprite):
 class Setting:
     """Объединяет в себе текст и кнопки для одной нстройки"""
 
-    font = 'PressStart2P.ttf'
     description = ['Количество слоёв фона', 'Музыка', 'Звуковые эффекты', 'Отображать FPS']
     values = [['1', '2', '3', '4', '5']] + [['нет', 'да']] * 4
 
@@ -293,7 +292,7 @@ class Setting:
         self.width, self.height = screen_size
         self.group = MySpriteGroup()
         self.boxes = MySpriteGroup()
-        self.font = pg.font.Font('data/' + Setting.font, self.width // 50)
+        self.font = pg.font.Font('data/' + FONT, self.width // 50)
         self.size_box = (screen_size[1] // 10, screen_size[1] // 10)
         self.rect_box = pg.transform.scale(load_im('check0.png'), self.size_box).get_rect()
         x, y = max(1, self.width // 40), max(1, self.height // 8) + index * (self.height // 4)
