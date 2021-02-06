@@ -11,5 +11,7 @@ if __name__ == '__main__':
     pg.init()
     pg.display.set_caption('раннер')
     display_size = pg.display.Info().current_w, pg.display.Info().current_h
+    # display_size = (1280, 1024)
     screen = pg.display.set_mode(display_size)
     Menu(screen).main_loop()
+

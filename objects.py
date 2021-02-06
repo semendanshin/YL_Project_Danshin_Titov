@@ -299,8 +299,7 @@ class CheckBox(pg.sprite.Sprite):
         self.rect = self.image0.get_rect()
         self.index = index
         self.checked = checked
-        x += (self.rect.width + 20) * index
-        self.rect.x, self.rect.y = x - self.rect.width // 2, y - self.rect.height // 2
+        self.rect.x, self.rect.y = x, y
 
     def draw(self, screen):
         screen.blit(self.image1 if self.checked else self.image0, self.rect)
@@ -309,17 +308,39 @@ class CheckBox(pg.sprite.Sprite):
 class Setting:
     """класс объеднидяет в себе полнцоенную настройку.
     Отображает параметр настройки, значения кнопок и сами кнопки, реализует все методы"""
+
+    font = 'PressStart2P-vaV7.ttf'
+    description = ['Количество слоёв фона', 'Музыка', 'Звуковые эффекты', 'отображать FPS']
+    values = [['1', '2', '3','4', '5']] + [['нет', 'да']] * 4
+
     def __init__(self, screen_size, index, check_box_count, check):
+        self.width, self.height = screen_size
         self.group = MySpriteGroup()
         self.boxes = MySpriteGroup()
-        x, y = 300, 100 + index * 250
+        self.font = pg.font.Font('data/' + Setting.font, self.width // 50)
+        self.size_box = (screen_size[1] // 10, screen_size[1] // 10)
+        self.rect_box = pg.transform.scale(load_im('check0.png'), self.size_box).get_rect()
+        x, y = max(1, self.width // 40), max(1, self.height // 8) + index * (self.height // 4)
         # создание и отрисовка описания настройки
-
-        # создание и отрисовка пояснений к кнопка
-
+        sprite = MySprite()
+        sprite.image = self.font.render(
+            Setting.description[index], True, (255, 255, 255)
+        )
+        sprite.rect = sprite.image.get_rect()
+        sprite.rect.x = x
+        sprite.rect.y = y
+        self.group.add(sprite)
+        x += self.width // 2.8
+        y -= self.height // 30
         # создание и отрисовка кнопок
         for i in range(check_box_count):
-            CheckBox(i, (screen_size[1] // 10, screen_size[1] // 10), x, y, check == i, self.boxes)
+            x += self.size_box[0] * 1.3
+            sprite = MySprite()
+            sprite.image = self.font.render(Setting.values[index][i], True, (255, 255, 255))
+            sprite.rect = sprite.image.get_rect()
+            sprite.rect.x, sprite.rect.y = x + self.size_box[0] // 2 - sprite.rect.width // 2, y - sprite.rect.height
+            self.group.add(sprite)
+            CheckBox(i, self.size_box, x, y, check == i, self.boxes)
 
     def update(self, pos):
         if [el for el in self.boxes if el.rect.collidepoint(pos)]:

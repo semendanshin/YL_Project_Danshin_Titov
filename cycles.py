@@ -5,7 +5,7 @@ FPS = 30
 
 
 class Game:
-    font = 'PressStart2P.ttf'
+    font = 'PressStart2P-vaV7.ttf'
     score_text_template = 'Score:{}'
     coins_text_template = 'Coins:{}'
     fps_text_template = 'FPS:{}'
