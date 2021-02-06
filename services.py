@@ -57,3 +57,8 @@ class MySpriteGroup(pg.sprite.Group):
     def draw(self, surf):
         for el in self.sprites():
             el.draw(surf)
+
+
+class MySprite(pg.sprite.Sprite):
+    def draw(self, screen):
+        screen.blit(self.image, self.rect)
