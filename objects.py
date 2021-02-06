@@ -4,6 +4,7 @@ from services import *
 
 
 class Player(pg.sprite.Sprite):
+    """Объект игока"""
     run_anim_count = 6
     run_anim_speed = 0.5
     jump_anim_count = 9
@@ -37,6 +38,7 @@ class Player(pg.sprite.Sprite):
         self.ground_y_coord = self.rect.y
 
     def load_animations(self, im_size):
+        """Загрузка анимаций"""
         self.run_images = [
             pg.transform.scale(
                 load_im(f'player/run_{i}.png').convert_alpha(), im_size
@@ -57,6 +59,7 @@ class Player(pg.sprite.Sprite):
         ]
 
     def start_jump(self):
+        """Начало прыжка"""
         if not self.in_jump and self.rect.y == self.ground_y_coord:
             self.jump_anim_index = 0
             self.in_slide = False
@@ -64,17 +67,20 @@ class Player(pg.sprite.Sprite):
             self.t = 0
 
     def start_slide(self):
+        """Начало подката"""
         if not self.in_slide:
             self.slide_anim_index = 0
             self.in_slide = True
             self.in_jump = False
 
     def stop_slide(self):
+        """Завершение подката"""
         if self.in_slide:
             self.rect.y = self.ground_y_coord
             self.in_slide = False
 
     def update(self):
+        """Обновление анимации и положения игрока"""
         if self.in_jump:
             if self.rect.y + (-self.vy + self.g * self.t) >= self.ground_y_coord:
                 self.rect.y = self.ground_y_coord
@@ -98,6 +104,7 @@ class Player(pg.sprite.Sprite):
             self.mask = pg.mask.from_surface(self.run_images[floor(self.run_anim_ind)])
 
     def draw(self, surf):
+        """Отрисовка игрока"""
         if self.in_jump:
             surf.blit(self.jump_images[floor(self.jump_anim_index)], self.rect)
         elif self.in_slide:
@@ -107,6 +114,7 @@ class Player(pg.sprite.Sprite):
 
 
 class Map:
+    """Класс, хранящий "карту" и объекты, ей принадлежащие"""
     cell_size = 300
     speed = 30
     first_floor = [0] * 2 + [1] * 4 + [2] * 4
@@ -131,11 +139,13 @@ class Map:
         self.ground = LoopedImage('ground.png', self.speed, ground_size, self.all_sprites)
 
     def up_speed(self):
+        """Повышение скорости"""
         self.speed += 1
         self.ground.set_speed(self.speed)
         self.load_freq = ceil(self.cell_size / self.speed)
 
     def generate_next(self):
+        """Генерация следующих элеметов карты"""
         new_items = []
         while True:
             item = choice(self.first_floor)
@@ -150,6 +160,7 @@ class Map:
         self.game_map.append(new_items)
 
     def load_next(self):
+        """Загрузка следующий элементов карты"""
         for el in self.game_map[-1]:
             if el == 1:
                 if self.free_coins:
@@ -193,6 +204,7 @@ class Map:
         self.game_map = self.game_map[1:]
 
     def update(self):
+        """Обновление элементов карты"""
         for el in self.all_sprites:
             if el.rect.x < -100:
                 el.kill()
@@ -209,10 +221,12 @@ class Map:
         self.all_sprites.update()
 
     def draw(self, surf):
+        """Отображение элементов карты"""
         self.all_sprites.draw(surf)
 
 
-class StaticObject(pg.sprite.Sprite):
+class StaticMapObject(pg.sprite.Sprite):
+    """Элемент карты без анимации"""
     def __init__(self, filename, speed, size, pos=(0, 0), *groups):
         super().__init__(*groups)
         self.speed = speed
@@ -234,19 +248,20 @@ class StaticObject(pg.sprite.Sprite):
         surf.blit(self.image, self.rect)
 
 
-class Coin(StaticObject):
+class Coin(StaticMapObject):
     pass
 
 
-class Ghost(StaticObject):
+class Ghost(StaticMapObject):
     pass
 
 
-class Rock(StaticObject):
+class Rock(StaticMapObject):
     pass
 
 
 class LoopedImage(pg.sprite.Sprite):
+    """Бесконечно движущаяся в сторону картинка"""
     def __init__(self, img_name, speed, size, *groups):
         super().__init__(*groups)
         self.speed = speed
@@ -255,9 +270,11 @@ class LoopedImage(pg.sprite.Sprite):
         self.shift = 0
 
     def set_speed(self, speed):
+        """Установка скорости движения"""
         self.speed = speed
 
     def update(self):
+        """Обновление положения картинки"""
         self.shift = (self.shift + self.speed) % self.rect.w
 
     def draw(self, surf):
@@ -265,53 +282,12 @@ class LoopedImage(pg.sprite.Sprite):
         surf.blit(self.image, (self.rect.w - self.shift, self.rect.y))
 
 
-class ClickButton(pg.sprite.Sprite):
-    """Класс создает кнопку на которую можно нажимать"""
-
-    def __init__(self, filename, index, screen_size, *groups):
-        """Кнопка хранит своё изображение, размеры, позицию, а также функцию, которая запускается при нажатии на нее"""
-        super().__init__(*groups)
-        self.image = load_im(filename)
-        self.image = pg.transform.scale(
-            self.image,
-            (screen_size[1] // 3, int(screen_size[1] // 3 * self.image.get_height() / self.image.get_width()))
-            )
-        self.rect = self.image.get_rect()
-        self.rect.x = screen_size[0] // 2 - self.rect.w // 2
-        self.rect.y = screen_size[1] // 2 + (self.rect.height + 50) * index - self.rect.h // 2
-
-    def collide(self, pos):
-        """Проверка что точка лежит на кнопке"""
-        return self.rect.collidepoint(pos)
-
-    def draw(self, screen):
-        """Отрисовка"""
-        screen.blit(self.image, self.rect)
-
-
-class CheckBox(pg.sprite.Sprite):
-    """Класс создает check box"""
-    def __init__(self, index, size, x, y, checked, *groups):
-        """хранит текущее состояние (картинка + число), размеры, позицию, картинки для всех возможных состояний"""
-        super().__init__(*groups)
-        self.image0 = pg.transform.scale(load_im('check0.png'), size)
-        self.image1 = pg.transform.scale(load_im('check1.png'), size)
-        self.rect = self.image0.get_rect()
-        self.index = index
-        self.checked = checked
-        self.rect.x, self.rect.y = x, y
-
-    def draw(self, screen):
-        screen.blit(self.image1 if self.checked else self.image0, self.rect)
-
-
 class Setting:
-    """класс объеднидяет в себе полнцоенную настройку.
-    Отображает параметр настройки, значения кнопок и сами кнопки, реализует все методы"""
+    """Объединяет в себе текст и кнопки для одной нстройки"""
 
-    font = 'PressStart2P-vaV7.ttf'
-    description = ['Количество слоёв фона', 'Музыка', 'Звуковые эффекты', 'отображать FPS']
-    values = [['1', '2', '3','4', '5']] + [['нет', 'да']] * 4
+    font = 'PressStart2P.ttf'
+    description = ['Количество слоёв фона', 'Музыка', 'Звуковые эффекты', 'Отображать FPS']
+    values = [['1', '2', '3', '4', '5']] + [['нет', 'да']] * 4
 
     def __init__(self, screen_size, index, check_box_count, check):
         self.width, self.height = screen_size
@@ -321,7 +297,6 @@ class Setting:
         self.size_box = (screen_size[1] // 10, screen_size[1] // 10)
         self.rect_box = pg.transform.scale(load_im('check0.png'), self.size_box).get_rect()
         x, y = max(1, self.width // 40), max(1, self.height // 8) + index * (self.height // 4)
-        # создание и отрисовка описания настройки
         sprite = MySprite()
         sprite.image = self.font.render(
             Setting.description[index], True, (255, 255, 255)
@@ -332,7 +307,6 @@ class Setting:
         self.group.add(sprite)
         x += self.width // 2.8
         y -= self.height // 30
-        # создание и отрисовка кнопок
         for i in range(check_box_count):
             x += self.size_box[0] * 1.3
             sprite = MySprite()
@@ -340,22 +314,58 @@ class Setting:
             sprite.rect = sprite.image.get_rect()
             sprite.rect.x, sprite.rect.y = x + self.size_box[0] // 2 - sprite.rect.width // 2, y - sprite.rect.height
             self.group.add(sprite)
-            CheckBox(i, self.size_box, x, y, check == i, self.boxes)
+            CheckBox(i, self.size_box, (x, y), check == i, self.boxes)
 
-    def update(self, pos):
+    def update(self, pos) -> bool:
+        """Обновление состояния кнопок"""
         if [el for el in self.boxes if el.rect.collidepoint(pos)]:
             for sprite in self.boxes:
                 if sprite.rect.collidepoint(pos):
                     sprite.checked = True
                 else:
                     sprite.checked = False
+            return True
+        else:
+            return False
 
-    def draw(self, screen):
+    def draw(self, screen: pg.Surface) -> None:
+        """Отрисовка элемиентов"""
         self.group.draw(screen)
         self.boxes.draw(screen)
 
-    def get_clicked(self) -> int:
+    def get_checked_box_index(self) -> int:
         """Возвращает индекс нажатой кнопки"""
         for el in self.boxes:
             if el.checked:
                 return el.index
+
+
+class ClickButton(pg.sprite.Sprite):
+    """Класс кнопки, на которую можно нажимать"""
+    def __init__(self, filename, index, size, pos, *groups):
+        super().__init__(*groups)
+        self.image = load_im(filename)
+        self.image = pg.transform.scale(self.image, (size, size * self.image.get_height() // self.image.get_width()))
+        self.rect = self.image.get_rect()
+        self.rect.x = pos[0] - self.rect.w // 2
+        self.rect.y = pos[1] + (self.rect.h + 50) * index - self.rect.h // 2
+
+    def draw(self, screen):
+        """Отрисовка"""
+        screen.blit(self.image, self.rect)
+
+
+class CheckBox(pg.sprite.Sprite):
+    """Класс создает check box"""
+    def __init__(self, check_box_index, size, pos, checked, *groups):
+        super().__init__(*groups)
+        self.image0 = pg.transform.scale(load_im('check0.png'), size)
+        self.image1 = pg.transform.scale(load_im('check1.png'), size)
+        self.rect = self.image0.get_rect()
+        self.index = check_box_index
+        self.checked = checked
+        self.rect.x, self.rect.y = pos
+
+    def draw(self, screen: pg.Surface) -> None:
+        """Отрисовка"""
+        screen.blit(self.image1 if self.checked else self.image0, self.rect)
