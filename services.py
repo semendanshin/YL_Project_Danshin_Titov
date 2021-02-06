@@ -17,18 +17,18 @@ def calculate_size_for_background(screen_size):
         return screen_size
 
 
-def load_im(name, colorkey=None):
+def load_im(name, color_key=None):
     fullname = os.path.join('data', 'imgs', name)
     try:
         img = pg.image.load(fullname)
     except FileNotFoundError:
         print(f"Файл с изображением '{fullname}' не найден")
         sys.exit()
-    if colorkey:
+    if color_key:
         img = img.convert()
-        if colorkey == -1:
-            colorkey = img.get_at((0, 0))
-        img.set_colorkey(colorkey)
+        if color_key == -1:
+            color_key = img.get_at((0, 0))
+        img.set_colorkey(color_key)
     else:
         img = img.convert_alpha()
     return img
